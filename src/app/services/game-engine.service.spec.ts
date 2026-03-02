@@ -17,7 +17,7 @@ describe('GameEngineService', () => {
     });
     service.reset();
     
-    try { jasmine.clock().uninstall(); } catch (e) {}
+    try { jasmine.clock().uninstall(); } catch { /* Ignore if not installed */ }
     jasmine.clock().install();
   });
 

@@ -53,7 +53,7 @@ export class GridComponent implements AfterViewInit, OnDestroy {
 
     // Déclencher un redimensionnement si la taille des cellules change
     effect(() => {
-      const { cellSize } = this.engine.config();
+      this.engine.config();
       const wrapper = this.wrapperRef()?.nativeElement;
       if (wrapper) {
         this.onResize(wrapper.clientWidth, wrapper.clientHeight);
@@ -71,7 +71,7 @@ export class GridComponent implements AfterViewInit, OnDestroy {
 
   private setupResizeObserver() {
     this.resizeObserver = new ResizeObserver(entries => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         // On utilise borderBoxSize ou contentRect
         const width = entry.contentRect.width || this.wrapperRef().nativeElement.clientWidth;
         const height = entry.contentRect.height || this.wrapperRef().nativeElement.clientHeight;

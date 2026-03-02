@@ -1,9 +1,15 @@
-import { Injectable, signal, effect, OnDestroy, untracked } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  effect,
+  OnDestroy,
+  untracked,
+} from '@angular/core';
 import { GameConfig } from '../models/game.model';
 import { PRESETS } from '../constants/presets';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class GameEngineService implements OnDestroy {
   // On expose un Uint8Array pour le rendu Canvas (0 = mort, 1 = vivant)
@@ -16,7 +22,7 @@ export class GameEngineService implements OnDestroy {
     speed: 16, // Proche de 60 FPS (1000/60)
     initialDensity: 0.25,
     resizeMode: 'fill',
-    cellSize: 10
+    cellSize: 10,
   });
 
   private bufferA!: Uint8Array;
@@ -26,9 +32,9 @@ export class GameEngineService implements OnDestroy {
 
   constructor() {
     this.initBuffers();
-    
+
     effect(() => {
-      const { speed } = this.config();
+      this.config();
       if (untracked(() => this.isRunning())) {
         untracked(() => {
           this.stop();
@@ -40,7 +46,7 @@ export class GameEngineService implements OnDestroy {
 
   updateDimensions(newRows: number, newCols: number): void {
     const currentConfig = untracked(() => this.config());
-    
+
     // Si on est en mode 'fixed' ou 'fit', on ne change pas le nombre de cellules
     if (currentConfig.resizeMode !== 'fill') return;
 
@@ -51,15 +57,16 @@ export class GameEngineService implements OnDestroy {
     if (newRows > MAX_DIM) newRows = MAX_DIM;
     if (newCols > MAX_DIM) newCols = MAX_DIM;
 
-    if (newRows === currentConfig.rows && newCols === currentConfig.columns) return;
+    if (newRows === currentConfig.rows && newCols === currentConfig.columns)
+      return;
 
     const oldGrid = untracked(() => this.grid());
     const oldRows = currentConfig.rows;
     const oldCols = currentConfig.columns;
-    
+
     // Mettre à jour la config
-    this.config.update(c => ({ ...c, rows: newRows, columns: newCols }));
-    
+    this.config.update((c) => ({ ...c, rows: newRows, columns: newCols }));
+
     // Recréer les buffers
     this.bufferA = new Uint8Array(newRows * newCols);
     this.bufferB = new Uint8Array(newRows * newCols);
@@ -73,13 +80,19 @@ export class GameEngineService implements OnDestroy {
         for (let x = 0; x < oldCols; x++) {
           const targetY = y + rowOffset;
           const targetX = x + colOffset;
-          if (targetY >= 0 && targetY < newRows && targetX >= 0 && targetX < newCols) {
-            this.bufferA[targetY * newCols + targetX] = oldGrid[y * oldCols + x];
+          if (
+            targetY >= 0 &&
+            targetY < newRows &&
+            targetX >= 0 &&
+            targetX < newCols
+          ) {
+            this.bufferA[targetY * newCols + targetX] =
+              oldGrid[y * oldCols + x];
           }
         }
       }
     }
-    
+
     this.grid.set(new Uint8Array(this.bufferA));
   }
 
@@ -132,7 +145,7 @@ export class GameEngineService implements OnDestroy {
   }
 
   updateSpeed(speed: number): void {
-    this.config.update(c => ({ ...c, speed }));
+    this.config.update((c) => ({ ...c, speed }));
   }
 
   randomize(): void {
@@ -164,9 +177,9 @@ export class GameEngineService implements OnDestroy {
         const isAlive = current[index] === 1;
 
         if (isAlive) {
-          next[index] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+          next[index] = neighbors === 2 || neighbors === 3 ? 1 : 0;
         } else {
-          next[index] = (neighbors === 3) ? 1 : 0;
+          next[index] = neighbors === 3 ? 1 : 0;
         }
       }
     }
@@ -174,11 +187,11 @@ export class GameEngineService implements OnDestroy {
     // Swap buffers sans réallocation
     this.bufferA.set(next);
     this.grid.set(new Uint8Array(this.bufferA));
-    this.generation.update(g => g + 1);
+    this.generation.update((g) => g + 1);
   }
 
   applyPreset(presetName: string): void {
-    const preset = PRESETS.find(p => p.name === presetName);
+    const preset = PRESETS.find((p) => p.name === presetName);
     if (!preset) return;
 
     this.reset();
@@ -186,7 +199,7 @@ export class GameEngineService implements OnDestroy {
     const midX = Math.floor(columns / 2);
     const midY = Math.floor(rows / 2);
 
-    preset.cells.forEach(c => {
+    preset.cells.forEach((c) => {
       const targetX = midX + c.x;
       const targetY = midY + c.y;
       if (targetX >= 0 && targetX < columns && targetY >= 0 && targetY < rows) {
@@ -196,7 +209,13 @@ export class GameEngineService implements OnDestroy {
     this.grid.set(new Uint8Array(this.bufferA));
   }
 
-  private countNeighbors(grid: Uint8Array, x: number, y: number, rows: number, cols: number): number {
+  private countNeighbors(
+    grid: Uint8Array,
+    x: number,
+    y: number,
+    rows: number,
+    cols: number,
+  ): number {
     let count = 0;
     for (let i = -1; i <= 1; i++) {
       const ni = y + i;
