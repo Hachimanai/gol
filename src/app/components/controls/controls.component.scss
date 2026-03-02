@@ -95,7 +95,7 @@ button {
 }
 
 input[type="number"] {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-color);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--primary-color);
   padding: 0.3rem 0.5rem;
@@ -132,11 +132,21 @@ input[type="number"] {
 select {
   padding: 0.35rem;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-color);
   color: var(--text-color);
   border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   font-size: 0.85rem;
+  outline: none;
+
+  &:focus {
+    border-color: var(--primary-color);
+  }
+
+  option {
+    background: var(--surface-color);
+    color: var(--text-color);
+  }
 }
 
 @media (max-width: 800px) {
