@@ -1,12 +1,13 @@
 .app-container {
   width: 100vw;
   height: 100vh;
-  background-color: #121212;
-  color: #ffffff;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 
   app-controls {
     flex-shrink: 0; /* Empêche le header de s'écraser */
@@ -25,7 +26,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #1a1a1a;
+    background: var(--bg-color);
     display: flex;
     justify-content: center;
     align-items: center;

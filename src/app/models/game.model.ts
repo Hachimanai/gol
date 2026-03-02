@@ -23,6 +23,11 @@ export interface GameTheme {
   alive: string;
   dead: string;
   grid: string;
+  // UI Colors
+  primary: string;    /* Accent color (buttons, Gen count) */
+  background: string; /* Global background */
+  surface: string;    /* Header background */
+  text: string;       /* Main text color */
 }
 
 export interface GameConfig {

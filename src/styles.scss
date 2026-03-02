@@ -1,4 +1,11 @@
 /* You can add global styles to this file, and also import other style files */
+:root {
+  --primary-color: #00ff88;
+  --bg-color: #121212;
+  --surface-color: #1a1a1a;
+  --text-color: #ffffff;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -7,5 +14,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background-color: #121212; /* Match the app-container background */
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }

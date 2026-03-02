@@ -92,16 +92,17 @@ import { THEMES } from '../../constants/themes';
     `
       .controls-header {
         padding: 0.5rem 1rem;
-        background: #1a1a1a;
-        color: #e0e0e0;
+        background: var(--surface-color);
+        color: var(--text-color);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1.5rem;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         width: 100%;
         flex-wrap: wrap;
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
       .brand {
         display: flex;
@@ -110,14 +111,15 @@ import { THEMES } from '../../constants/themes';
         h1 {
           margin: 0;
           font-size: 1.2rem;
-          color: #00ff88;
+          color: var(--primary-color);
           letter-spacing: 1px;
         }
         .stats {
           font-size: 0.85rem;
-          color: #888;
+          color: var(--text-color);
+          opacity: 0.7;
           strong {
-            color: #00ff88;
+            color: var(--primary-color);
           }
         }
       }
@@ -133,29 +135,30 @@ import { THEMES } from '../../constants/themes';
         gap: 0.5rem;
         font-size: 0.85rem;
         label {
-          color: #aaa;
+          color: var(--text-color);
+          opacity: 0.8;
           white-space: nowrap;
         }
       }
       button {
         padding: 0.4rem 0.8rem;
         border-radius: 4px;
-        border: none;
-        background: #333;
-        color: #00ff88;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        color: var(--primary-color);
         font-weight: 600;
         font-size: 0.85rem;
         cursor: pointer;
         transition: all 0.2s;
-        border: 1px solid #444;
       }
       button:hover {
-        background: #444;
+        background: rgba(255,255,255,0.1);
         transform: translateY(-1px);
       }
       button[title='Start'],
       button[title='Pause'] {
         min-width: 70px;
+        border-color: var(--primary-color);
       }
       button.running {
         background: #ff4444;
@@ -172,9 +175,9 @@ import { THEMES } from '../../constants/themes';
       }
 
       input[type="number"] { 
-        background: #252525;
-        border: 1px solid #444;
-        color: #00ff88;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: var(--primary-color);
         padding: 0.3rem 0.5rem;
         border-radius: 4px;
         width: 60px;
@@ -183,29 +186,23 @@ import { THEMES } from '../../constants/themes';
         outline: none;
         -moz-appearance: textfield;
       }
-      input[type="number"]::-webkit-outer-spin-button,
-      input[type="number"]::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
       input[type="number"]:focus {
-        border-color: #00ff88;
+        border-color: var(--primary-color);
       }
 
       .input-with-unit {
         display: flex;
         align-items: center;
         gap: 0.3rem;
-        span { color: #666; font-size: 0.8rem; }
+        span { color: var(--text-color); opacity: 0.5; font-size: 0.8rem; }
       }
 
       select { 
-
         padding: 0.35rem;
         border-radius: 4px;
-        background: #252525;
-        color: white;
-        border: 1px solid #444;
+        background: rgba(255,255,255,0.05);
+        color: var(--text-color);
+        border: 1px solid rgba(255,255,255,0.1);
         cursor: pointer;
         font-size: 0.85rem;
       }
