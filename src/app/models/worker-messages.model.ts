@@ -13,7 +13,7 @@ export type WorkerCommandType =
 
   export interface WorkerCommand {
   type: WorkerCommandType;
-  payload?: any;
+  payload?: unknown;
   }
 
   export interface TransferCanvasPayload {

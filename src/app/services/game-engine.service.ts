@@ -8,7 +8,7 @@ import {
 import { GameConfig, GameTheme } from '../models/game.model';
 import { PRESETS } from '../constants/presets';
 import { THEMES } from '../constants/themes';
-import { WorkerCommand, WorkerCommandType, WorkerResponse, WorkerResponseType } from '../models/worker-messages.model';
+import { WorkerCommand, WorkerCommandType, WorkerResponse } from '../models/worker-messages.model';
 
 import { Subject } from 'rxjs';
 
@@ -175,7 +175,7 @@ export class GameEngineService implements OnDestroy {
     });
   }
 
-  private sendCommand(type: WorkerCommandType, payload?: any) {
+  private sendCommand(type: WorkerCommandType, payload?: unknown) {
     if (this.worker) {
       const command: WorkerCommand = { type, payload };
       this.worker.postMessage(command);

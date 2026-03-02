@@ -1,12 +1,12 @@
 export class GameLogic {
   private bufferA: Uint8Array = new Uint8Array(0);
   private bufferB: Uint8Array = new Uint8Array(0);
-  private rows: number = 0;
-  private columns: number = 0;
-  private generation: number = 0;
-  private population: number = 0;
+  private rows = 0;
+  private columns = 0;
+  private generation = 0;
+  private population = 0;
 
-  initialize(rows: number, columns: number, density: number = 0): void {
+  initialize(rows: number, columns: number, density = 0): void {
     this.rows = rows;
     this.columns = columns;
     this.bufferA = new Uint8Array(rows * columns);

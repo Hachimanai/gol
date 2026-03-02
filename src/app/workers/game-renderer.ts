@@ -1,8 +1,8 @@
 export class GameRenderer {
   private ctx: OffscreenCanvasRenderingContext2D | null = null;
   private canvas: OffscreenCanvas | null = null;
-  private aliveColor: string = '#00ff88';
-  private deadColor: string = '#1a1a1a';
+  private aliveColor = '#00ff88';
+  private deadColor = '#1a1a1a';
 
   setCanvas(canvas: OffscreenCanvas, width: number, height: number, theme: { alive: string, dead: string }) {
     this.canvas = canvas;

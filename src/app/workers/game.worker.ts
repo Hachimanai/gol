@@ -2,13 +2,13 @@
 
 import { GameLogic } from './game-logic';
 import { GameRenderer } from './game-renderer';
-import { WorkerCommand, WorkerResponse, WorkerResponseType } from '../models/worker-messages.model';
+import { WorkerCommand, WorkerResponse, WorkerResponseType, InitializePayload, CellPayload, PresetPayload, ResizePayload, TransferCanvasPayload, UpdateThemePayload } from '../models/worker-messages.model';
 
 const engine = new GameLogic();
 const renderer = new GameRenderer();
 
 let isRunning = false;
-let timeoutId: any = null;
+let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // On garde une trace de la config pour le rendu
 let rows = 0;
@@ -23,15 +23,17 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
   const { type, payload } = data;
 
   switch (type) {
-    case 'INITIALIZE':
+    case 'INITIALIZE': {
       stopLoop();
-      rows = payload.rows;
-      columns = payload.columns;
-      if (payload.cellSize) cellSize = payload.cellSize;
-      engine.initialize(rows, columns, payload.initialDensity);
+      const p = payload as InitializePayload & { cellSize?: number };
+      rows = p.rows;
+      columns = p.columns;
+      if (p.cellSize) cellSize = p.cellSize;
+      engine.initialize(rows, columns, p.initialDensity);
       sendResponse('INITIALIZED', true); // Force UI update
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
+    }
 
     case 'START':
       startLoop();
@@ -41,59 +43,75 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
       stopLoop();
       break;
 
-    case 'NEXT_GEN':
+    case 'NEXT_GEN': {
       engine.computeNextGeneration();
       const state = engine.getState();
       renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
       sendResponse('GEN_COMPLETED', true); // Force UI update
       break;
+    }
 
-    case 'TOGGLE_CELL':
-      engine.toggleCell(payload.x, payload.y);
-      const isNowAlive = engine.getState().grid[payload.y * columns + payload.x] === 1;
-      renderer.drawCell(payload.x, payload.y, isNowAlive, rows, columns, cellSize);
+    case 'TOGGLE_CELL': {
+      const p = payload as { x: number, y: number };
+      engine.toggleCell(p.x, p.y);
+      const isNowAlive = engine.getState().grid[p.y * columns + p.x] === 1;
+      renderer.drawCell(p.x, p.y, isNowAlive, rows, columns, cellSize);
       sendResponse('STATE_UPDATED', true);
       break;
+    }
 
-    case 'SET_CELL':
-      engine.setCell(payload.x, payload.y, payload.isAlive);
-      renderer.drawCell(payload.x, payload.y, payload.isAlive, rows, columns, cellSize);
+    case 'SET_CELL': {
+      const p = payload as CellPayload;
+      const isAlive = !!p.isAlive;
+      engine.setCell(p.x, p.y, isAlive);
+      renderer.drawCell(p.x, p.y, isAlive, rows, columns, cellSize);
       sendResponse('STATE_UPDATED', true);
       break;
+    }
 
-    case 'RANDOMIZE':
-      engine.randomize(payload.density);
+    case 'RANDOMIZE': {
+      const p = payload as { density: number };
+      engine.randomize(p.density);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       sendResponse('STATE_UPDATED', true);
       break;
+    }
 
-    case 'APPLY_PRESET':
-      engine.applyPreset(payload.cells);
+    case 'APPLY_PRESET': {
+      const p = payload as PresetPayload;
+      engine.applyPreset(p.cells);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       sendResponse('STATE_UPDATED', true);
       break;
+    }
 
-    case 'RESIZE':
-      rows = payload.rows;
-      columns = payload.columns;
-      if (payload.cellSize) cellSize = payload.cellSize;
-      if (payload.width && payload.height) {
-        renderer.resize(payload.width, payload.height);
+    case 'RESIZE': {
+      const p = payload as ResizePayload & { cellSize?: number, width?: number, height?: number };
+      rows = p.rows;
+      columns = p.columns;
+      if (p.cellSize) cellSize = p.cellSize;
+      if (p.width && p.height) {
+        renderer.resize(p.width, p.height);
       }
       engine.resize(rows, columns);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       sendResponse('STATE_UPDATED', true);
       break;
+    }
 
-    case 'TRANSFER_CANVAS':
-      renderer.setCanvas(payload.canvas, payload.width, payload.height, payload.theme);
+    case 'TRANSFER_CANVAS': {
+      const p = payload as TransferCanvasPayload;
+      renderer.setCanvas(p.canvas, p.width, p.height, p.theme);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
+    }
 
-    case 'UPDATE_THEME':
-      renderer.updateTheme(payload);
+    case 'UPDATE_THEME': {
+      const p = payload as UpdateThemePayload;
+      renderer.updateTheme(p);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
+    }
   }
 });
 
@@ -126,7 +144,7 @@ function tick() {
   timeoutId = setTimeout(tick, 0);
 }
 
-function sendResponse(type: WorkerResponseType, force: boolean = false) {
+function sendResponse(type: WorkerResponseType, force = false) {
   const now = performance.now();
   
   // On ne s'envoie à l'UI que si forcé (action manuelle) ou si l'intervalle est respecté
@@ -148,6 +166,6 @@ function sendResponse(type: WorkerResponseType, force: boolean = false) {
     }
   };
 
-  postMessage(response, [gridCopy.buffer] as any);
+  postMessage(response, [gridCopy.buffer] as unknown as Transferable[]);
   lastUiUpdateTime = now;
 }
