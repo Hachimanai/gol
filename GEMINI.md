@@ -80,7 +80,8 @@ Pour simuler une équipe multi-agents, adopte le rôle demandé lorsque l'utilis
 - Use `input()` and `output()` functions instead of decorators
 - Use `computed()` for derived state
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator
-- Prefer inline templates for small components
+- **Always use separate `.scss` files for component styles.** Do not use inline `styles` or `styleHtml`.
+- **Always use separate `.html` files for component templates.** Do not use inline `template`.
 - Prefer Reactive forms instead of Template-driven ones
 - Do NOT use `ngClass`, use `class` bindings instead
 - Do NOT use `ngStyle`, use `style` bindings instead
@@ -209,7 +210,7 @@ Les paramètres suivants doivent être exposés dans l'interface :
 ## Phase 6 : Évolutions & Expérience Utilisateur [MODE: PO]
 
 - [ ] **Persistance** : Sauvegarder l'état de la grille et les réglages dans le LocalStorage.
-- [ ] **Thématisation** : Ajouter un sélecteur de thèmes de couleurs (Classique, Matrix, Plasma, High Contrast).
+- [x] **Thématisation** : Ajouter un sélecteur de thèmes de couleurs (Classique, Matrix, Plasma, High Contrast).
 - [ ] **Statistiques Avancées** : Afficher un graphique de la population au fil des générations.
 - [ ] **Raccourcis Clavier** : Implémenter des contrôles rapides (Play/Pause, Reset, Next Step).
 - [ ] **Export/Import** : Permettre de télécharger un motif au format JSON ou RLE.

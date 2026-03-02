@@ -6,35 +6,8 @@ import { GameEngineService } from '../../services/game-engine.service';
   selector: 'app-grid',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="grid-wrapper" #wrapper>
-      <canvas #gridCanvas 
-        (mousedown)="onMouseDown($event)"
-        (mousemove)="onMouseMove($event)"
-        class="game-canvas">
-      </canvas>
-    </div>
-  `,
-  styles: [`
-    :host {
-      display: block;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
-    .grid-wrapper {
-      width: 100%;
-      height: 100%;
-      background: #121212;
-      display: block; /* Simplifié */
-    }
-    .game-canvas {
-      display: block; /* Empêche l'espace blanc en bas des images/inline */
-      background-color: #1a1a1a;
-      cursor: crosshair;
-      image-rendering: pixelated;
-    }
-  `]
+  templateUrl: './grid.component.html',
+  styleUrl: './grid.component.scss',
 })
 export class GridComponent implements AfterViewInit, OnDestroy {
   private canvasRef = viewChild.required<ElementRef<HTMLCanvasElement>>('gridCanvas');

@@ -16,7 +16,8 @@
 - Use `input()` and `output()` functions instead of decorators
 - Use `computed()` for derived state
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator
-- Prefer inline templates for small components
+- **Always use separate `.scss` files for component styles.** Do not use inline `styles` or `styleHtml`.
+- **Always use separate `.html` files for component templates.** Do not use inline `template`.
 - Prefer Reactive forms instead of Template-driven ones
 - Do NOT use `ngClass`, use `class` bindings instead
 - Do NOT use `ngStyle`, use `style` bindings instead
