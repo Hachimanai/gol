@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GameEngineService } from '../../services/game-engine.service';
 import { PRESETS } from '../../constants/presets';
@@ -17,6 +17,20 @@ export class ControlsComponent {
   engine = inject(GameEngineService);
   presets = PRESETS;
   themes = THEMES;
+
+  sparklinePoints = computed(() => {
+    const history = this.engine.populationHistory();
+    if (history.length === 0) return '';
+    
+    const maxVal = Math.max(...history, 1);
+    const minVal = 0;
+    
+    return history.map((val, index) => {
+      const x = (index / Math.max(history.length - 1, 1)) * 100;
+      const y = 20 - ((val - minVal) / maxVal) * 20;
+      return `${x},${y}`;
+    }).join(' ');
+  });
 
   updateSpeed(event: Event) {
     const input = event.target as HTMLInputElement;

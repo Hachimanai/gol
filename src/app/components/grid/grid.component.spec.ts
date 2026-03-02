@@ -55,7 +55,7 @@ describe('GridComponent', () => {
       
       // Mock getBoundingClientRect pour les calculs de coordonnées
       spyOn(canvas, 'getBoundingClientRect').and.returnValue({
-        left: 0, top: 0, right: 500, bottom: 500, width: 500, height: 500, x: 0, y: 0, toJSON: () => {}
+        left: 0, top: 0, right: 500, bottom: 500, width: 500, height: 500, x: 0, y: 0, toJSON: () => ({})
       } as DOMRect);
       
       // Forcer des dimensions pour le test

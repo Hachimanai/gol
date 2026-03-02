@@ -18,6 +18,7 @@ export class GameEngineService implements OnDestroy {
   readonly isRunning = signal<boolean>(false);
   readonly generation = signal<number>(0);
   readonly fps = signal<number>(0);
+  readonly populationHistory = signal<number[]>([0]);
   readonly config = signal<GameConfig>({
     rows: 60,
     columns: 80,
@@ -32,6 +33,7 @@ export class GameEngineService implements OnDestroy {
   private bufferB!: Uint8Array;
   private frameId: number | null = null;
   private lastFrameTime = 0;
+  private readonly maxHistory = 50;
 
   constructor() {
     this.initBuffers();
@@ -74,6 +76,7 @@ export class GameEngineService implements OnDestroy {
     this.bufferA = new Uint8Array(newRows * newCols);
     this.bufferB = new Uint8Array(newRows * newCols);
 
+    let currentPop = 0;
     // Tenter de copier l'ancien état au centre
     if (oldGrid.length > 0) {
       const rowOffset = Math.floor((newRows - oldRows) / 2);
@@ -89,14 +92,20 @@ export class GameEngineService implements OnDestroy {
             targetX >= 0 &&
             targetX < newCols
           ) {
-            this.bufferA[targetY * newCols + targetX] =
-              oldGrid[y * oldCols + x];
+            const val = oldGrid[y * oldCols + x];
+            this.bufferA[targetY * newCols + targetX] = val;
+            if (val) currentPop++;
           }
         }
       }
     }
 
     this.grid.set(new Uint8Array(this.bufferA));
+    this.populationHistory.update(h => {
+      const newH = [...h];
+      newH[newH.length - 1] = currentPop;
+      return newH;
+    });
   }
 
   private initBuffers() {
@@ -162,6 +171,7 @@ export class GameEngineService implements OnDestroy {
     this.stop();
     this.generation.set(0);
     this.initBuffers();
+    this.populationHistory.set([0]);
   }
 
   updateSpeed(speed: number): void {
@@ -175,10 +185,14 @@ export class GameEngineService implements OnDestroy {
   randomize(): void {
     this.generation.set(0);
     const { initialDensity: density } = this.config();
+    let pop = 0;
     for (let i = 0; i < this.bufferA.length; i++) {
-      this.bufferA[i] = Math.random() < density ? 1 : 0;
+      const isAlive = Math.random() < density ? 1 : 0;
+      this.bufferA[i] = isAlive;
+      if (isAlive) pop++;
     }
     this.grid.set(new Uint8Array(this.bufferA));
+    this.populationHistory.set([pop]);
   }
 
   toggleCell(x: number, y: number): void {
@@ -187,6 +201,12 @@ export class GameEngineService implements OnDestroy {
     const newState = this.bufferA[index] ? 0 : 1;
     this.bufferA[index] = newState;
     this.grid.set(new Uint8Array(this.bufferA));
+    
+    this.populationHistory.update(hist => {
+      const newHist = [...hist];
+      newHist[newHist.length - 1] += newState ? 1 : -1;
+      return newHist;
+    });
   }
 
   setCellState(x: number, y: number, isAlive: boolean): void {
@@ -196,6 +216,12 @@ export class GameEngineService implements OnDestroy {
     if (this.bufferA[index] !== newState) {
       this.bufferA[index] = newState;
       this.grid.set(new Uint8Array(this.bufferA));
+      
+      this.populationHistory.update(hist => {
+        const newHist = [...hist];
+        newHist[newHist.length - 1] += newState ? 1 : -1;
+        return newHist;
+      });
     }
   }
 
@@ -203,6 +229,7 @@ export class GameEngineService implements OnDestroy {
     const { rows, columns } = this.config();
     const current = this.bufferA;
     const next = this.bufferB;
+    let newPop = 0;
 
     for (let y = 0; y < rows; y++) {
       const yCols = y * columns;
@@ -211,11 +238,15 @@ export class GameEngineService implements OnDestroy {
         const neighbors = this.countNeighbors(current, x, y, rows, columns);
         const isAlive = current[index] === 1;
 
+        let willBeAlive = 0;
         if (isAlive) {
-          next[index] = neighbors === 2 || neighbors === 3 ? 1 : 0;
+          willBeAlive = neighbors === 2 || neighbors === 3 ? 1 : 0;
         } else {
-          next[index] = neighbors === 3 ? 1 : 0;
+          willBeAlive = neighbors === 3 ? 1 : 0;
         }
+        
+        next[index] = willBeAlive;
+        if (willBeAlive) newPop++;
       }
     }
 
@@ -223,6 +254,12 @@ export class GameEngineService implements OnDestroy {
     this.bufferA.set(next);
     this.grid.set(new Uint8Array(this.bufferA));
     this.generation.update((g) => g + 1);
+    
+    this.populationHistory.update(hist => {
+      const newHist = [...hist, newPop];
+      if (newHist.length > this.maxHistory) newHist.shift();
+      return newHist;
+    });
   }
 
   applyPreset(presetName: string): void {
@@ -234,14 +271,17 @@ export class GameEngineService implements OnDestroy {
     const midX = Math.floor(columns / 2);
     const midY = Math.floor(rows / 2);
 
+    let pop = 0;
     preset.cells.forEach((c) => {
       const targetX = midX + c.x;
       const targetY = midY + c.y;
       if (targetX >= 0 && targetX < columns && targetY >= 0 && targetY < rows) {
         this.bufferA[targetY * columns + targetX] = 1;
+        pop++;
       }
     });
     this.grid.set(new Uint8Array(this.bufferA));
+    this.populationHistory.set([pop]);
   }
 
   private countNeighbors(

@@ -4,6 +4,11 @@
     <div class="stats">
       <span>Gen: <strong>{{ engine.generation() }}</strong></span>
       <span class="fps-counter">FPS: <strong>{{ engine.fps() | number:'1.0-0' }}</strong></span>
+      <div class="sparkline-container" [title]="'Population: ' + engine.populationHistory()[engine.populationHistory().length - 1]">
+        <svg viewBox="0 0 100 20" preserveAspectRatio="none">
+          <polyline [attr.points]="sparklinePoints()" fill="none" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
     </div>
   </div>
 

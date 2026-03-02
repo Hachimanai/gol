@@ -17,6 +17,7 @@ describe('ControlsComponent', () => {
     Object.defineProperty(mockEngine, 'isRunning', { value: signal(false), writable: true });
     Object.defineProperty(mockEngine, 'generation', { value: signal(0), writable: true });
     Object.defineProperty(mockEngine, 'fps', { value: signal(0), writable: true });
+    Object.defineProperty(mockEngine, 'populationHistory', { value: signal([0]), writable: true });
     Object.defineProperty(mockEngine, 'config', { 
       value: signal({ 
         rows: 40, 
