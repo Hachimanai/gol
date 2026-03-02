@@ -8,6 +8,7 @@
       <span class="fps-counter"
         >FPS: <strong>{{ engine.fps() | number: "1.0-0" }}</strong></span
       >
+      <span>Cells: <strong>{{ engine.totalCells() | number }}</strong></span>
       <div
         class="sparkline-container"
         [title]="

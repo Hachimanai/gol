@@ -4,11 +4,16 @@ import {
   effect,
   OnDestroy,
   untracked,
+  computed,
 } from '@angular/core';
 import { GameConfig, GameTheme } from '../models/game.model';
 import { PRESETS } from '../constants/presets';
 import { THEMES } from '../constants/themes';
-import { WorkerCommand, WorkerCommandType, WorkerResponse } from '../models/worker-messages.model';
+import {
+  WorkerCommand,
+  WorkerCommandType,
+  WorkerResponse,
+} from '../models/worker-messages.model';
 
 import { Subject } from 'rxjs';
 
@@ -18,12 +23,15 @@ import { Subject } from 'rxjs';
 export class GameEngineService implements OnDestroy {
   // Signals exposés pour l'UI
   readonly grid = signal<Uint8Array>(new Uint8Array(0));
-  readonly gridDiff$ = new Subject<{ added: number[], removed: number[] }>();
+  readonly gridDiff$ = new Subject<{ added: number[]; removed: number[] }>();
   readonly fullRedraw$ = new Subject<void>();
   readonly isRunning = signal<boolean>(false);
   readonly error = signal<string | null>(null);
   readonly generation = signal<number>(0);
   readonly fps = signal<number>(0);
+  readonly totalCells = computed(
+    () => this.config().rows * this.config().columns,
+  );
   readonly populationHistory = signal<number[]>([0]);
   readonly config = signal<GameConfig>({
     rows: 60,
@@ -53,7 +61,7 @@ export class GameEngineService implements OnDestroy {
       try {
         // Création du Worker
         this.worker = new Worker(
-          new URL('../workers/game.worker', import.meta.url)
+          new URL('../workers/game.worker', import.meta.url),
         );
 
         // Gestion des messages reçus du Worker
@@ -73,7 +81,12 @@ export class GameEngineService implements OnDestroy {
         // Initialisation technique : ON FORCE UNE GRILLE VIDE (initialDensity: 0)
         // même si la config par défaut est à 0.3 pour l'UI.
         const { rows, columns, cellSize } = this.config();
-        this.sendCommand('INITIALIZE', { rows, columns, cellSize, initialDensity: 0 });
+        this.sendCommand('INITIALIZE', {
+          rows,
+          columns,
+          cellSize,
+          initialDensity: 0,
+        });
         this.error.set(null);
       } catch (e) {
         this.error.set('Failed to initialize Game Engine Worker.');
@@ -92,7 +105,7 @@ export class GameEngineService implements OnDestroy {
         canvas,
         width,
         height,
-        theme: { alive: theme.alive, dead: theme.dead }
+        theme: { alive: theme.alive, dead: theme.dead },
       };
       this.worker.postMessage({ type: 'TRANSFER_CANVAS', payload }, [canvas]);
     }
@@ -111,12 +124,12 @@ export class GameEngineService implements OnDestroy {
         this.generation.set(payload.generation);
         this.updatePopulationHistory(payload.population);
         this.calculateFps();
-        
+
         // Notification chirurgicale uniquement pendant la simulation
         if (payload.added || payload.removed) {
-          this.gridDiff$.next({ 
-            added: payload.added || [], 
-            removed: payload.removed || [] 
+          this.gridDiff$.next({
+            added: payload.added || [],
+            removed: payload.removed || [],
           });
         }
         break;
@@ -153,7 +166,9 @@ export class GameEngineService implements OnDestroy {
       // pour éviter l'affichage de "Infinity" ou des pics irréalistes.
       if (delta > 1) {
         const currentFps = 1000 / delta;
-        this.fps.update((f) => (f === 0 ? currentFps : f * 0.9 + currentFps * 0.1));
+        this.fps.update((f) =>
+          f === 0 ? currentFps : f * 0.9 + currentFps * 0.1,
+        );
       }
     }
     this.lastFrameTime = now;
@@ -235,24 +250,30 @@ export class GameEngineService implements OnDestroy {
     }
   }
 
-  updateDimensions(newRows: number, newCols: number, width?: number, height?: number): void {
+  updateDimensions(
+    newRows: number,
+    newCols: number,
+    width?: number,
+    height?: number,
+  ): void {
     const currentConfig = untracked(() => this.config());
     if (currentConfig.resizeMode !== 'fill') return;
 
-    const rowsChanged = newRows !== currentConfig.rows || newCols !== currentConfig.columns;
-    
+    const rowsChanged =
+      newRows !== currentConfig.rows || newCols !== currentConfig.columns;
+
     if (rowsChanged) {
       this.config.update((c) => ({ ...c, rows: newRows, columns: newCols }));
     }
 
     // On envoie systématiquement la commande RESIZE au worker si on a des dimensions px,
     // car le canvas doit peut-être se redimensionner même si le nombre de cellules est identique.
-    this.sendCommand('RESIZE', { 
-      rows: newRows, 
-      columns: newCols, 
-      width, 
+    this.sendCommand('RESIZE', {
+      rows: newRows,
+      columns: newCols,
+      width,
       height,
-      cellSize: currentConfig.cellSize
+      cellSize: currentConfig.cellSize,
     });
   }
 }
