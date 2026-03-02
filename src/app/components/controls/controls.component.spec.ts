@@ -7,28 +7,33 @@ import { GameConfig } from '../../models/game.model';
 describe('ControlsComponent', () => {
   let component: ControlsComponent;
   let fixture: ComponentFixture<ControlsComponent>;
-  let mockEngine: jasmine.SpyObj<GameEngineService> & {
-    isRunning: WritableSignal<boolean>;
-    generation: WritableSignal<number>;
-    config: WritableSignal<GameConfig>;
-    grid: WritableSignal<Uint8Array>;
-  };
+  let mockEngine: jasmine.SpyObj<GameEngineService>;
 
   beforeEach(async () => {
-    const spy = jasmine.createSpyObj('GameEngineService', ['start', 'stop', 'nextGeneration', 'reset', 'randomize', 'applyPreset']);
-    mockEngine = spy as unknown as typeof mockEngine;
+    mockEngine = jasmine.createSpyObj('GameEngineService', ['start', 'stop', 'nextGeneration', 'reset', 'randomize', 'applyPreset']);
     
-    mockEngine.isRunning = signal(false);
-    mockEngine.generation = signal(0);
-    mockEngine.config = signal({ 
-      rows: 40, 
-      columns: 60, 
-      speed: 100, 
-      initialDensity: 0.25, 
-      resizeMode: 'fill', 
-      cellSize: 10 
+    // Injecter les signaux directement dans l'instance espionnée
+    Object.defineProperty(mockEngine, 'isRunning', { value: signal(false), writable: true });
+    Object.defineProperty(mockEngine, 'generation', { value: signal(0), writable: true });
+    Object.defineProperty(mockEngine, 'config', { 
+      value: signal({ 
+        rows: 40, 
+        columns: 60, 
+        speed: 100, 
+        initialDensity: 0.25, 
+        resizeMode: 'fill', 
+        cellSize: 10 
+      }), 
+      writable: true 
     });
-    mockEngine.grid = signal(new Uint8Array(0));
+    Object.defineProperty(mockEngine, 'grid', { value: signal(new Uint8Array(0)), writable: true });
+
+    const engine = mockEngine as unknown as {
+      isRunning: WritableSignal<boolean>;
+      generation: WritableSignal<number>;
+      config: WritableSignal<GameConfig>;
+      grid: WritableSignal<Uint8Array>;
+    } & jasmine.SpyObj<GameEngineService>;
 
     await TestBed.configureTestingModule({
       imports: [ControlsComponent],
@@ -53,7 +58,8 @@ describe('ControlsComponent', () => {
     startBtn.click();
     expect(mockEngine.start).toHaveBeenCalled();
 
-    mockEngine.isRunning.set(true);
+    const engine = mockEngine as any;
+    engine.isRunning.set(true);
     fixture.detectChanges();
     
     expect(startBtn.textContent).toContain('Pause');
@@ -67,11 +73,13 @@ describe('ControlsComponent', () => {
     const numberInput = fixture.nativeElement.querySelector('input[type="number"]#speed-input');
     numberInput.value = '500';
     numberInput.dispatchEvent(new Event('input'));
-    expect(mockEngine.config().speed).toBe(500);
+    const engine = mockEngine as any;
+    expect(engine.config().speed).toBe(500);
   });
 
   it('should display the current generation', () => {
-    mockEngine.generation.set(10);
+    const engine = mockEngine as any;
+    engine.generation.set(10);
     fixture.detectChanges();
     const stats = fixture.nativeElement.querySelector('.stats');
     expect(stats.textContent).toContain('Gen: 10');

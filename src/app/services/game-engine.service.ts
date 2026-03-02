@@ -51,7 +51,7 @@ export class GameEngineService implements OnDestroy {
     if (currentConfig.resizeMode !== 'fill') return;
 
     // Validation de sécurité : Empêcher des tailles excessives
-    const MAX_DIM = 500;
+    const MAX_DIM = 6000;
     if (newRows < 1) newRows = 1;
     if (newCols < 1) newCols = 1;
     if (newRows > MAX_DIM) newRows = MAX_DIM;
