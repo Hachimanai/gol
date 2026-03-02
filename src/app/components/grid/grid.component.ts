@@ -147,25 +147,65 @@ export class GridComponent implements AfterViewInit, OnDestroy {
   }
 
   onMouseDown(event: MouseEvent) {
-    this.handleInteract(event);
+    this.startInteract(event);
   }
 
   onMouseMove(event: MouseEvent) {
     if (event.buttons === 1) {
-      this.handleInteract(event);
+      this.continueInteract(event);
     }
   }
 
-  private handleInteract(event: MouseEvent) {
+  private lastInteractedCell: { x: number, y: number } | null = null;
+  private isDrawingMode = true; // true = drawing alive, false = erasing
+
+  private startInteract(event: MouseEvent) {
+    const coords = this.getCellCoords(event);
+    if (!coords) return;
+
+    const { x, y } = coords;
+    const { columns } = this.engine.config();
+    const currentGrid = this.engine.grid();
+    
+    // Déterminer le mode basé sur la cellule cliquée en premier
+    // Si on clique sur une vivante, on passe en mode "gomme"
+    this.isDrawingMode = currentGrid[y * columns + x] === 0;
+    
+    this.engine.setCellState(x, y, this.isDrawingMode);
+    this.lastInteractedCell = { x, y };
+  }
+
+  private continueInteract(event: MouseEvent) {
+    const coords = this.getCellCoords(event);
+    if (!coords) return;
+
+    const { x, y } = coords;
+    
+    // Éviter de traiter plusieurs fois la même cellule lors du mouvement
+    if (this.lastInteractedCell?.x === x && this.lastInteractedCell?.y === y) {
+      return;
+    }
+
+    this.engine.setCellState(x, y, this.isDrawingMode);
+    this.lastInteractedCell = { x, y };
+  }
+
+  private getCellCoords(event: MouseEvent): { x: number, y: number } | null {
     const canvas = this.canvasRef().nativeElement;
     const rect = canvas.getBoundingClientRect();
-    const step = this.dynamicCellSize + this.GAP;
-    const x = Math.floor((event.clientX - rect.left) / step);
-    const y = Math.floor((event.clientY - rect.top) / step);
+    const { rows, columns, cellSize } = this.engine.config();
+    const step = cellSize + this.GAP;
+
+    // Calcul du centrage (identique au drawGrid)
+    const offsetX = Math.floor((canvas.width - (columns * step - this.GAP)) / 2);
+    const offsetY = Math.floor((canvas.height - (rows * step - this.GAP)) / 2);
+
+    const x = Math.floor((event.clientX - rect.left - offsetX) / step);
+    const y = Math.floor((event.clientY - rect.top - offsetY) / step);
     
-    const { rows, columns } = this.engine.config();
     if (x >= 0 && x < columns && y >= 0 && y < rows) {
-      this.engine.toggleCell(x, y);
+      return { x, y };
     }
+    return null;
   }
 }

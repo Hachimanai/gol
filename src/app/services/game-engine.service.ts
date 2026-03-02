@@ -160,8 +160,19 @@ export class GameEngineService implements OnDestroy {
   toggleCell(x: number, y: number): void {
     const { columns } = this.config();
     const index = y * columns + x;
-    this.bufferA[index] = this.bufferA[index] ? 0 : 1;
+    const newState = this.bufferA[index] ? 0 : 1;
+    this.bufferA[index] = newState;
     this.grid.set(new Uint8Array(this.bufferA));
+  }
+
+  setCellState(x: number, y: number, isAlive: boolean): void {
+    const { columns } = this.config();
+    const index = y * columns + x;
+    const newState = isAlive ? 1 : 0;
+    if (this.bufferA[index] !== newState) {
+      this.bufferA[index] = newState;
+      this.grid.set(new Uint8Array(this.bufferA));
+    }
   }
 
   nextGeneration(): void {

@@ -28,13 +28,6 @@ describe('ControlsComponent', () => {
     });
     Object.defineProperty(mockEngine, 'grid', { value: signal(new Uint8Array(0)), writable: true });
 
-    const engine = mockEngine as unknown as {
-      isRunning: WritableSignal<boolean>;
-      generation: WritableSignal<number>;
-      config: WritableSignal<GameConfig>;
-      grid: WritableSignal<Uint8Array>;
-    } & jasmine.SpyObj<GameEngineService>;
-
     await TestBed.configureTestingModule({
       imports: [ControlsComponent],
       providers: [
@@ -58,7 +51,7 @@ describe('ControlsComponent', () => {
     startBtn.click();
     expect(mockEngine.start).toHaveBeenCalled();
 
-    const engine = mockEngine as any;
+    const engine = mockEngine as unknown as { isRunning: WritableSignal<boolean> };
     engine.isRunning.set(true);
     fixture.detectChanges();
     
@@ -73,12 +66,12 @@ describe('ControlsComponent', () => {
     const numberInput = fixture.nativeElement.querySelector('input[type="number"]#speed-input');
     numberInput.value = '500';
     numberInput.dispatchEvent(new Event('input'));
-    const engine = mockEngine as any;
+    const engine = mockEngine as unknown as { config: WritableSignal<GameConfig> };
     expect(engine.config().speed).toBe(500);
   });
 
   it('should display the current generation', () => {
-    const engine = mockEngine as any;
+    const engine = mockEngine as unknown as { generation: WritableSignal<number> };
     engine.generation.set(10);
     fixture.detectChanges();
     const stats = fixture.nativeElement.querySelector('.stats');
