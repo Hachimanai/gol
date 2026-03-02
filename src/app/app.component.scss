@@ -1,0 +1,53 @@
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #121212;
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  app-controls {
+    flex-shrink: 0; /* Empêche le header de s'écraser */
+  }
+
+  main {
+    flex-grow: 1;
+    position: relative; /* Base pour le viewport */
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .viewport {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+:fullscreen .app-container {
+  app-controls {
+    display: none;
+  }
+
+  main {
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .viewport {
+    border: none;
+    background: black;
+    height: 100vh;
+    width: 100vw;
+    border-radius: 0;
+  }
+}
