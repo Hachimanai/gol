@@ -8,13 +8,16 @@ const engine = new GameLogic();
 const renderer = new GameRenderer();
 
 let isRunning = false;
-let speed = 16;
 let timeoutId: any = null;
 
 // On garde une trace de la config pour le rendu
 let rows = 0;
 let columns = 0;
 let cellSize = 2;
+
+// Throttling pour l'UI (60 FPS max pour les stats)
+let lastUiUpdateTime = 0;
+const UI_UPDATE_INTERVAL = 1000 / 60; // 16.6ms
 
 addEventListener('message', ({ data }: { data: WorkerCommand }) => {
   const { type, payload } = data;
@@ -26,12 +29,11 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
       columns = payload.columns;
       if (payload.cellSize) cellSize = payload.cellSize;
       engine.initialize(rows, columns, payload.initialDensity);
-      sendResponse('INITIALIZED');
+      sendResponse('INITIALIZED', true); // Force UI update
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
 
     case 'START':
-      if (payload?.speed) speed = payload.speed;
       startLoop();
       break;
 
@@ -39,40 +41,36 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
       stopLoop();
       break;
 
-    case 'SET_SPEED':
-      speed = payload.speed;
-      break;
-
     case 'NEXT_GEN':
       engine.computeNextGeneration();
       const state = engine.getState();
       renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
-      sendResponse('GEN_COMPLETED');
+      sendResponse('GEN_COMPLETED', true); // Force UI update
       break;
 
     case 'TOGGLE_CELL':
       engine.toggleCell(payload.x, payload.y);
       const isNowAlive = engine.getState().grid[payload.y * columns + payload.x] === 1;
       renderer.drawCell(payload.x, payload.y, isNowAlive, rows, columns, cellSize);
-      sendResponse('STATE_UPDATED');
+      sendResponse('STATE_UPDATED', true);
       break;
 
     case 'SET_CELL':
       engine.setCell(payload.x, payload.y, payload.isAlive);
       renderer.drawCell(payload.x, payload.y, payload.isAlive, rows, columns, cellSize);
-      sendResponse('STATE_UPDATED');
+      sendResponse('STATE_UPDATED', true);
       break;
 
     case 'RANDOMIZE':
       engine.randomize(payload.density);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
-      sendResponse('STATE_UPDATED');
+      sendResponse('STATE_UPDATED', true);
       break;
 
     case 'APPLY_PRESET':
       engine.applyPreset(payload.cells);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
-      sendResponse('STATE_UPDATED');
+      sendResponse('STATE_UPDATED', true);
       break;
 
     case 'RESIZE':
@@ -84,7 +82,7 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
       }
       engine.resize(rows, columns);
       renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
-      sendResponse('STATE_UPDATED');
+      sendResponse('STATE_UPDATED', true);
       break;
 
     case 'TRANSFER_CANVAS':
@@ -116,26 +114,27 @@ function stopLoop() {
 function tick() {
   if (!isRunning) return;
 
-  const start = performance.now();
+  // Calcul et rendu direct (vitesse maximale)
   engine.computeNextGeneration();
-  
   const state = engine.getState();
   renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
   
+  // Notification UI avec throttling (60Hz)
   sendResponse('GEN_COMPLETED');
-  const end = performance.now();
 
-  const workTime = end - start;
-  const nextDelay = Math.max(0, speed - workTime);
-
-  timeoutId = setTimeout(tick, nextDelay);
+  // Relance immédiate
+  timeoutId = setTimeout(tick, 0);
 }
 
-function sendResponse(type: WorkerResponseType) {
-  const state = engine.getState();
+function sendResponse(type: WorkerResponseType, force: boolean = false) {
+  const now = performance.now();
   
-  // Note: On continue d'envoyer la grille pour que le service garde son état (stats, populationHistory)
-  // Même si le rendu est déporté.
+  // On ne s'envoie à l'UI que si forcé (action manuelle) ou si l'intervalle est respecté
+  if (!force && (now - lastUiUpdateTime < UI_UPDATE_INTERVAL)) {
+    return;
+  }
+
+  const state = engine.getState();
   const gridCopy = new Uint8Array(state.grid);
   
   const response: WorkerResponse = {
@@ -150,4 +149,5 @@ function sendResponse(type: WorkerResponseType) {
   };
 
   postMessage(response, [gridCopy.buffer] as any);
+  lastUiUpdateTime = now;
 }

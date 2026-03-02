@@ -33,7 +33,6 @@ export interface GameTheme {
 export interface GameConfig {
   rows: number;
   columns: number;
-  speed: number;
   initialDensity: number;
   resizeMode: ResizeMode;
   cellSize: number;

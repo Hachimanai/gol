@@ -28,7 +28,6 @@ export class GameEngineService implements OnDestroy {
   readonly config = signal<GameConfig>({
     rows: 60,
     columns: 80,
-    speed: 16, // Proche de 60 FPS (1000/60)
     initialDensity: 0.3,
     resizeMode: 'fill',
     cellSize: 2,
@@ -42,10 +41,9 @@ export class GameEngineService implements OnDestroy {
   constructor() {
     this.initWorker();
 
-    // Réaction aux changements de configuration (vitesse, thème, cellSize)
+    // Réaction aux changements de configuration (thème, cellSize)
     effect(() => {
       const config = this.config();
-      this.updateWorkerSpeed(config.speed);
       this.updateWorkerTheme(config.theme);
     });
   }
@@ -193,7 +191,7 @@ export class GameEngineService implements OnDestroy {
     if (this.isRunning()) return;
     this.isRunning.set(true);
     this.lastFrameTime = 0;
-    this.sendCommand('START', { speed: this.config().speed });
+    this.sendCommand('START');
   }
 
   stop(): void {
@@ -207,14 +205,6 @@ export class GameEngineService implements OnDestroy {
     this.stop();
     const { rows, columns } = this.config();
     this.sendCommand('INITIALIZE', { rows, columns, initialDensity: 0 });
-  }
-
-  updateSpeed(speed: number): void {
-    this.config.update((c) => ({ ...c, speed }));
-  }
-
-  private updateWorkerSpeed(speed: number) {
-    this.sendCommand('SET_SPEED', { speed });
   }
 
   updateTheme(theme: GameTheme): void {

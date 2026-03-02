@@ -2,7 +2,6 @@ export type WorkerCommandType =
   | 'INITIALIZE' 
   | 'START'
   | 'STOP'
-  | 'SET_SPEED'
   | 'NEXT_GEN' 
   | 'TOGGLE_CELL' 
   | 'SET_CELL'

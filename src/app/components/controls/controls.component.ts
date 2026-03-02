@@ -32,17 +32,6 @@ export class ControlsComponent {
     }).join(' ');
   });
 
-  updateSpeed(event: Event) {
-    const input = event.target as HTMLInputElement;
-    let val = parseInt(input.value, 10);
-    
-    // Validation de sécurité : Empêcher les valeurs absurdes ou négatives
-    if (isNaN(val) || val < 1) val = 1;
-    if (val > 1000) val = 1000;
-    
-    this.engine.config.update((c) => ({ ...c, speed: val }));
-  }
-
   updateCellSize(event: Event) {
     const input = event.target as HTMLInputElement;
     let val = parseInt(input.value, 10);
