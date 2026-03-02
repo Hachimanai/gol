@@ -18,6 +18,13 @@ export interface Viewport {
  */
 export type GridState = Uint8Array;
 
+export interface GameTheme {
+  name: string;
+  alive: string;
+  dead: string;
+  grid: string;
+}
+
 export interface GameConfig {
   rows: number;
   columns: number;
@@ -25,6 +32,7 @@ export interface GameConfig {
   initialDensity: number;
   resizeMode: ResizeMode;
   cellSize: number;
+  theme: GameTheme;
 }
 
 export interface Preset {

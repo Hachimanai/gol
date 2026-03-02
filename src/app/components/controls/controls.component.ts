@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { GameEngineService } from '../../services/game-engine.service';
 import { PRESETS } from '../../constants/presets';
 
+import { THEMES } from '../../constants/themes';
+
 @Component({
   selector: 'app-controls',
   standalone: true,
@@ -36,6 +38,17 @@ import { PRESETS } from '../../constants/presets';
       </div>
 
       <div class="settings">
+        <div class="setting-item">
+          <label for="theme-select">Theme</label>
+          <select id="theme-select" (change)="applyTheme($event)">
+            @for (theme of themes; track theme.name) {
+              <option [value]="theme.name" [selected]="theme.name === engine.config().theme.name">
+                {{ theme.name }}
+              </option>
+            }
+          </select>
+        </div>
+
         <div class="setting-item">
           <label for="size-input">Cell Size</label>
           <div class="input-with-unit">
@@ -208,6 +221,7 @@ import { PRESETS } from '../../constants/presets';
 export class ControlsComponent {
   engine = inject(GameEngineService);
   presets = PRESETS;
+  themes = THEMES;
 
   updateSpeed(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -234,6 +248,12 @@ export class ControlsComponent {
   applyPreset(event: Event) {
     const name = (event.target as HTMLSelectElement).value;
     if (name) this.engine.applyPreset(name);
+  }
+
+  applyTheme(event: Event) {
+    const name = (event.target as HTMLSelectElement).value;
+    const theme = THEMES.find(t => t.name === name);
+    if (theme) this.engine.updateTheme(theme);
   }
 
   toggleFullscreen() {

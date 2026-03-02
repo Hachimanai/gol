@@ -122,25 +122,38 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     if (!ctx) return;
 
     const grid = this.engine.grid();
-    const { rows, columns } = this.engine.config();
-    const step = this.dynamicCellSize + this.GAP;
+    const { rows, columns, cellSize, theme } = this.engine.config();
+    const step = cellSize + this.GAP;
 
     // Calcul du centrage pour que la grille soit au milieu si elle ne remplit pas tout parfaitement
     const offsetX = Math.floor((canvas.width - (columns * step - this.GAP)) / 2);
     const offsetY = Math.floor((canvas.height - (rows * step - this.GAP)) / 2);
 
-    // Fond
-    ctx.fillStyle = '#1a1a1a';
+    // Fond (couleur des cellules mortes)
+    ctx.fillStyle = theme.dead;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Dessiner les lignes de la grille (optionnel, basé sur GAP)
+    if (this.GAP > 0) {
+      ctx.fillStyle = theme.grid;
+      // Lignes verticales
+      for (let x = 0; x <= columns; x++) {
+        ctx.fillRect(offsetX + x * step - this.GAP, offsetY, this.GAP, rows * step - this.GAP);
+      }
+      // Lignes horizontales
+      for (let y = 0; y <= rows; y++) {
+        ctx.fillRect(offsetX, offsetY + y * step - this.GAP, columns * step - this.GAP, this.GAP);
+      }
+    }
+
     // Cellules vivantes
-    ctx.fillStyle = '#00ff88';
+    ctx.fillStyle = theme.alive;
     for (let y = 0; y < rows; y++) {
       const yOffset = y * columns;
       const py = offsetY + y * step;
       for (let x = 0; x < columns; x++) {
         if (grid[yOffset + x] === 1) {
-          ctx.fillRect(offsetX + x * step, py, this.dynamicCellSize, this.dynamicCellSize);
+          ctx.fillRect(offsetX + x * step, py, cellSize, cellSize);
         }
       }
     }

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { GridComponent } from './grid.component';
 import { GameEngineService } from '../../services/game-engine.service';
+import { THEMES } from '../../constants/themes';
 
 describe('GridComponent', () => {
   let component: GridComponent;
@@ -23,7 +24,8 @@ describe('GridComponent', () => {
       speed: 100, 
       initialDensity: 0, 
       resizeMode: 'fill', 
-      cellSize: 10 
+      cellSize: 10,
+      theme: THEMES[0]
     });
     engine.reset();
     

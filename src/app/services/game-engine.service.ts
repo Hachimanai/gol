@@ -5,8 +5,9 @@ import {
   OnDestroy,
   untracked,
 } from '@angular/core';
-import { GameConfig } from '../models/game.model';
+import { GameConfig, GameTheme } from '../models/game.model';
 import { PRESETS } from '../constants/presets';
+import { THEMES } from '../constants/themes';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +24,7 @@ export class GameEngineService implements OnDestroy {
     initialDensity: 0.25,
     resizeMode: 'fill',
     cellSize: 10,
+    theme: THEMES[0],
   });
 
   private bufferA!: Uint8Array;
@@ -146,6 +148,10 @@ export class GameEngineService implements OnDestroy {
 
   updateSpeed(speed: number): void {
     this.config.update((c) => ({ ...c, speed }));
+  }
+
+  updateTheme(theme: GameTheme): void {
+    this.config.update((c) => ({ ...c, theme }));
   }
 
   randomize(): void {

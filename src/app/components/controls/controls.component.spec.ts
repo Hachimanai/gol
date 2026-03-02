@@ -3,6 +3,7 @@ import { ControlsComponent } from './controls.component';
 import { GameEngineService } from '../../services/game-engine.service';
 import { signal, WritableSignal } from '@angular/core';
 import { GameConfig } from '../../models/game.model';
+import { THEMES } from '../../constants/themes';
 
 describe('ControlsComponent', () => {
   let component: ControlsComponent;
@@ -10,7 +11,7 @@ describe('ControlsComponent', () => {
   let mockEngine: jasmine.SpyObj<GameEngineService>;
 
   beforeEach(async () => {
-    mockEngine = jasmine.createSpyObj('GameEngineService', ['start', 'stop', 'nextGeneration', 'reset', 'randomize', 'applyPreset']);
+    mockEngine = jasmine.createSpyObj('GameEngineService', ['start', 'stop', 'nextGeneration', 'reset', 'randomize', 'applyPreset', 'updateTheme']);
     
     // Injecter les signaux directement dans l'instance espionnée
     Object.defineProperty(mockEngine, 'isRunning', { value: signal(false), writable: true });
@@ -22,7 +23,8 @@ describe('ControlsComponent', () => {
         speed: 100, 
         initialDensity: 0.25, 
         resizeMode: 'fill', 
-        cellSize: 10 
+        cellSize: 10,
+        theme: THEMES[0]
       }), 
       writable: true 
     });
@@ -68,6 +70,13 @@ describe('ControlsComponent', () => {
     numberInput.dispatchEvent(new Event('input'));
     const engine = mockEngine as unknown as { config: WritableSignal<GameConfig> };
     expect(engine.config().speed).toBe(500);
+  });
+
+  it('should update theme when select changes', () => {
+    const select = fixture.nativeElement.querySelector('select#theme-select');
+    select.value = THEMES[1].name;
+    select.dispatchEvent(new Event('change'));
+    expect(mockEngine.updateTheme).toHaveBeenCalledWith(THEMES[1]);
   });
 
   it('should display the current generation', () => {

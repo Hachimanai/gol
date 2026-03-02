@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { GameEngineService } from './game-engine.service';
+import { THEMES } from '../constants/themes';
 
 describe('GameEngineService', () => {
   let service: GameEngineService;
@@ -13,7 +14,8 @@ describe('GameEngineService', () => {
       speed: 16, 
       initialDensity: 0, 
       resizeMode: 'fill', 
-      cellSize: 10 
+      cellSize: 10,
+      theme: THEMES[0]
     });
     service.reset();
     
@@ -110,7 +112,8 @@ describe('GameEngineService', () => {
         speed: 100, 
         initialDensity: 0, 
         resizeMode: 'fill', 
-        cellSize: 10 
+        cellSize: 10,
+        theme: THEMES[0]
       });
       service.reset();
       
@@ -126,6 +129,11 @@ describe('GameEngineService', () => {
       // La cellule (1,1) de la grille 3x3 doit se retrouver à (2,2) dans la grille 5x5
       // rowOffset = floor(5-3/2) = 1, colOffset = floor(5-3/2) = 1
       expect(grid[2 * cols + 2]).toBe(1);
+    });
+
+    it('should update theme correctly', () => {
+      service.updateTheme(THEMES[1]);
+      expect(service.config().theme.name).toBe(THEMES[1].name);
     });
 
     it('should stay empty when no cells are alive', () => {
