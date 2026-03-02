@@ -16,15 +16,15 @@
     <button
       [class.running]="engine.isRunning()"
       (click)="engine.isRunning() ? engine.stop() : engine.start()"
-      [title]="engine.isRunning() ? 'Pause' : 'Start'"
+      [title]="engine.isRunning() ? 'Pause (Space)' : 'Start (Space)'"
     >
       {{ engine.isRunning() ? 'Pause' : 'Start' }}
     </button>
-    <button (click)="engine.nextGeneration()" title="Next Generation">
+    <button (click)="engine.nextGeneration()" title="Next Generation (S / ArrowRight)">
       Step
     </button>
-    <button (click)="engine.reset()" title="Clear Grid">Reset</button>
-    <button (click)="engine.randomize()" title="Randomize Grid">
+    <button (click)="engine.reset()" title="Clear Grid (R)">Reset</button>
+    <button (click)="engine.randomize()" title="Randomize Grid (C)">
       Random
     </button>
   </div>
@@ -73,7 +73,7 @@
     <button
       class="secondary btn-icon"
       (click)="toggleFullscreen()"
-      title="Toggle Fullscreen"
+      title="Toggle Fullscreen (F)"
     >
       ⛶
     </button>

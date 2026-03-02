@@ -212,7 +212,7 @@ Les paramètres suivants doivent être exposés dans l'interface :
 - [ ] **Persistance** : Sauvegarder l'état de la grille et les réglages dans le LocalStorage.
 - [x] **Thématisation** : Ajouter un sélecteur de thèmes de couleurs (Classique, Matrix, Plasma, High Contrast).
 - [x] **Statistiques Avancées** : Afficher un graphique de la population au fil des générations.
-- [ ] **Raccourcis Clavier** : Implémenter des contrôles rapides (Play/Pause, Reset, Next Step).
+- [x] **Raccourcis Clavier** : Implémenter des contrôles rapides (Play/Pause, Reset, Next Step).
 - [ ] **Export/Import** : Permettre de télécharger un motif au format JSON ou RLE.
 
 
