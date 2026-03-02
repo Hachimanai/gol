@@ -46,5 +46,7 @@ export interface WorkerResponse {
     grid: Uint8Array;
     generation: number;
     population: number;
+    added?: number[];   // Indices des cellules nées
+    removed?: number[]; // Indices des cellules mortes
   };
 }

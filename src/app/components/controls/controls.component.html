@@ -2,11 +2,28 @@
   <div class="brand">
     <h1>Game Of Life</h1>
     <div class="stats">
-      <span>Gen: <strong>{{ engine.generation() }}</strong></span>
-      <span class="fps-counter">FPS: <strong>{{ engine.fps() | number:'1.0-0' }}</strong></span>
-      <div class="sparkline-container" [title]="'Population: ' + engine.populationHistory()[engine.populationHistory().length - 1]">
+      <span
+        >Gen: <strong>{{ engine.generation() }}</strong></span
+      >
+      <span class="fps-counter"
+        >FPS: <strong>{{ engine.fps() | number: "1.0-0" }}</strong></span
+      >
+      <div
+        class="sparkline-container"
+        [title]="
+          'Population: ' +
+          engine.populationHistory()[engine.populationHistory().length - 1]
+        "
+      >
         <svg viewBox="0 0 100 20" preserveAspectRatio="none">
-          <polyline [attr.points]="sparklinePoints()" fill="none" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline
+            [attr.points]="sparklinePoints()"
+            fill="none"
+            stroke="var(--primary-color)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
       </div>
     </div>
@@ -18,18 +35,27 @@
       (click)="engine.isRunning() ? engine.stop() : engine.start()"
       [title]="engine.isRunning() ? 'Pause (Space)' : 'Start (Space)'"
     >
-      {{ engine.isRunning() ? 'Pause' : 'Start' }}
+      {{ engine.isRunning() ? "Pause" : "Start" }}
     </button>
-    <button (click)="engine.nextGeneration()" title="Next Generation (S / ArrowRight)">
+    <button
+      (click)="engine.nextGeneration()"
+      title="Next Generation (S / ArrowRight)"
+    >
       Step
     </button>
     <button (click)="engine.reset()" title="Clear Grid (R)">Reset</button>
     <div class="setting-item">
       <label for="density-input">Density</label>
       <div class="input-with-unit">
-        <input type="number" id="density-input" min="0" max="100" step="5" 
-          [value]="engine.config().initialDensity * 100" 
-          (input)="updateDensity($event)">
+        <input
+          type="number"
+          id="density-input"
+          min="0"
+          max="100"
+          step="5"
+          [value]="engine.config().initialDensity * 100"
+          (input)="updateDensity($event)"
+        />
         <span>%</span>
       </div>
     </div>
@@ -44,7 +70,10 @@
       <label for="theme-select">Theme</label>
       <select id="theme-select" (change)="applyTheme($event)">
         @for (theme of themes; track theme.name) {
-          <option [value]="theme.name" [selected]="theme.name === engine.config().theme.name">
+          <option
+            [value]="theme.name"
+            [selected]="theme.name === engine.config().theme.name"
+          >
             {{ theme.name }}
           </option>
         }
@@ -54,9 +83,15 @@
     <div class="setting-item">
       <label for="size-input">Cell Size</label>
       <div class="input-with-unit">
-        <input type="number" id="size-input" min="1" max="50" step="1" 
-          [value]="engine.config().cellSize" 
-          (input)="updateCellSize($event)">
+        <input
+          type="number"
+          id="size-input"
+          min="1"
+          max="50"
+          step="1"
+          [value]="engine.config().cellSize"
+          (input)="updateCellSize($event)"
+        />
         <span>px</span>
       </div>
     </div>
@@ -64,9 +99,15 @@
     <div class="setting-item">
       <label for="speed-input">Speed</label>
       <div class="input-with-unit">
-        <input type="number" id="speed-input" min="1" max="1000" step="1" 
-          [value]="engine.config().speed" 
-          (input)="updateSpeed($event)">
+        <input
+          type="number"
+          id="speed-input"
+          min="1"
+          max="1000"
+          step="1"
+          [value]="engine.config().speed"
+          (input)="updateSpeed($event)"
+        />
         <span>ms</span>
       </div>
     </div>

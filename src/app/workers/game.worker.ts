@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 import { GameLogic } from './game-logic';
-import { WorkerCommand, WorkerResponse } from '../models/worker-messages.model';
+import { WorkerCommand, WorkerResponse, WorkerResponseType } from '../models/worker-messages.model';
 
 const engine = new GameLogic();
 let isRunning = false;
@@ -94,7 +94,7 @@ function tick() {
   timeoutId = setTimeout(tick, nextDelay);
 }
 
-function sendResponse(type: any) {
+function sendResponse(type: WorkerResponseType) {
   const state = engine.getState();
   
   // On crée une copie pour le transfert (Transferable)
@@ -105,7 +105,9 @@ function sendResponse(type: any) {
     payload: {
       grid: gridCopy,
       generation: state.generation,
-      population: state.population
+      population: state.population,
+      added: state.added,
+      removed: state.removed
     }
   };
 

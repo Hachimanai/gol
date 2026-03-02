@@ -1,6 +1,7 @@
-import { Component, inject, viewChild, ElementRef, effect, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, inject, viewChild, ElementRef, effect, AfterViewInit, OnDestroy, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GameEngineService } from '../../services/game-engine.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-grid',
@@ -17,35 +18,50 @@ export class GridComponent implements AfterViewInit, OnDestroy {
   private readonly GAP = 0;
   private dynamicCellSize = 10;
   private resizeObserver?: ResizeObserver;
+  private diffSubscription?: Subscription;
+  private fullRedrawSubscription?: Subscription;
 
   constructor() {
-    // Redessiner à chaque changement de grille ou de config
-    effect(() => {
-      this.drawGrid();
-    });
-
     // Déclencher un redimensionnement si la taille des cellules change
     effect(() => {
       this.engine.config();
       const wrapper = this.wrapperRef()?.nativeElement;
       if (wrapper) {
-        this.onResize(wrapper.clientWidth, wrapper.clientHeight);
+        untracked(() => this.onResize(wrapper.clientWidth, wrapper.clientHeight));
       }
+    });
+
+    // Redessiner uniquement si la configuration structurelle change (Thème)
+    // On ne s'abonne PLUS à engine.grid() ici pour éviter les rendus complets à chaque frame.
+    effect(() => {
+      const config = this.engine.config();
+      untracked(() => this.drawFullGrid());
     });
   }
 
   ngAfterViewInit() {
     this.setupResizeObserver();
+    
+    // Abonnement au rendu différentiel chirurgical
+    this.diffSubscription = this.engine.gridDiff$.subscribe(diff => {
+      this.updateGridSurgically(diff.added, diff.removed);
+    });
+
+    // Abonnement aux demandes de rendu complet (Init, Reset, Manual Edits)
+    this.fullRedrawSubscription = this.engine.fullRedraw$.subscribe(() => {
+      this.drawFullGrid();
+    });
   }
 
   ngOnDestroy() {
     this.resizeObserver?.disconnect();
+    this.diffSubscription?.unsubscribe();
+    this.fullRedrawSubscription?.unsubscribe();
   }
 
   private setupResizeObserver() {
     this.resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
-        // On utilise borderBoxSize ou contentRect
         const width = entry.contentRect.width || this.wrapperRef().nativeElement.clientWidth;
         const height = entry.contentRect.height || this.wrapperRef().nativeElement.clientHeight;
         
@@ -61,7 +77,7 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     const config = this.engine.config();
     
     if (config.resizeMode === 'fill') {
-      const step = config.cellSize; // GAP est 0
+      const step = config.cellSize;
       const columns = Math.floor(width / step);
       const rows = Math.floor(height / step);
       this.dynamicCellSize = config.cellSize;
@@ -84,10 +100,10 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     const canvas = this.canvasRef().nativeElement;
     canvas.width = width;
     canvas.height = height;
-    this.drawGrid();
+    this.drawFullGrid();
   }
 
-  private drawGrid() {
+  private drawFullGrid() {
     const canvas = this.canvasRef()?.nativeElement;
     if (!canvas) return;
 
@@ -96,17 +112,14 @@ export class GridComponent implements AfterViewInit, OnDestroy {
 
     const grid = this.engine.grid();
     const { rows, columns, cellSize, theme } = this.engine.config();
-    const step = cellSize; // GAP est 0
+    const step = cellSize;
 
-    // Calcul du centrage
     const offsetX = Math.floor((canvas.width - (columns * step)) / 2);
     const offsetY = Math.floor((canvas.height - (rows * step)) / 2);
 
-    // Fond (couleur des cellules mortes)
     ctx.fillStyle = theme.dead;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Cellules vivantes
     ctx.fillStyle = theme.alive;
     for (let y = 0; y < rows; y++) {
       const yOffset = y * columns;
@@ -116,6 +129,34 @@ export class GridComponent implements AfterViewInit, OnDestroy {
           ctx.fillRect(offsetX + x * step, py, cellSize, cellSize);
         }
       }
+    }
+  }
+
+  private updateGridSurgically(added: number[], removed: number[]) {
+    const canvas = this.canvasRef()?.nativeElement;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    const { rows, columns, cellSize, theme } = this.engine.config();
+    const step = cellSize;
+
+    const offsetX = Math.floor((canvas.width - (columns * step)) / 2);
+    const offsetY = Math.floor((canvas.height - (rows * step)) / 2);
+
+    ctx.fillStyle = theme.alive;
+    for (const index of added) {
+      const x = index % columns;
+      const y = Math.floor(index / columns);
+      ctx.fillRect(offsetX + x * step, offsetY + y * step, cellSize, cellSize);
+    }
+
+    ctx.fillStyle = theme.dead;
+    for (const index of removed) {
+      const x = index % columns;
+      const y = Math.floor(index / columns);
+      ctx.fillRect(offsetX + x * step, offsetY + y * step, cellSize, cellSize);
     }
   }
 
@@ -130,7 +171,7 @@ export class GridComponent implements AfterViewInit, OnDestroy {
   }
 
   private lastInteractedCell: { x: number, y: number } | null = null;
-  private isDrawingMode = true; // true = drawing alive, false = erasing
+  private isDrawingMode = true;
 
   private startInteract(event: MouseEvent) {
     const coords = this.getCellCoords(event);
@@ -140,8 +181,6 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     const { columns } = this.engine.config();
     const currentGrid = this.engine.grid();
     
-    // Déterminer le mode basé sur la cellule cliquée en premier
-    // Si on clique sur une vivante, on passe en mode "gomme"
     this.isDrawingMode = currentGrid[y * columns + x] === 0;
     
     this.engine.setCellState(x, y, this.isDrawingMode);
@@ -154,7 +193,6 @@ export class GridComponent implements AfterViewInit, OnDestroy {
 
     const { x, y } = coords;
     
-    // Éviter de traiter plusieurs fois la même cellule lors du mouvement
     if (this.lastInteractedCell?.x === x && this.lastInteractedCell?.y === y) {
       return;
     }
@@ -167,11 +205,10 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     const canvas = this.canvasRef().nativeElement;
     const rect = canvas.getBoundingClientRect();
     const { rows, columns, cellSize } = this.engine.config();
-    const step = cellSize + this.GAP;
+    const step = cellSize;
 
-    // Calcul du centrage (identique au drawGrid)
-    const offsetX = Math.floor((canvas.width - (columns * step - this.GAP)) / 2);
-    const offsetY = Math.floor((canvas.height - (rows * step - this.GAP)) / 2);
+    const offsetX = Math.floor((canvas.width - (columns * step)) / 2);
+    const offsetY = Math.floor((canvas.height - (rows * step)) / 2);
 
     const x = Math.floor((event.clientX - rect.left - offsetX) / step);
     const y = Math.floor((event.clientY - rect.top - offsetY) / step);

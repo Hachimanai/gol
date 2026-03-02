@@ -10,12 +10,16 @@ import { PRESETS } from '../constants/presets';
 import { THEMES } from '../constants/themes';
 import { WorkerCommand, WorkerCommandType, WorkerResponse, WorkerResponseType } from '../models/worker-messages.model';
 
+import { Subject } from 'rxjs';
+
 @Injectable({
   providedIn: 'root',
 })
 export class GameEngineService implements OnDestroy {
   // Signals exposés pour l'UI
   readonly grid = signal<Uint8Array>(new Uint8Array(0));
+  readonly gridDiff$ = new Subject<{ added: number[], removed: number[] }>();
+  readonly fullRedraw$ = new Subject<void>();
   readonly isRunning = signal<boolean>(false);
   readonly error = signal<string | null>(null);
   readonly generation = signal<number>(0);
@@ -87,18 +91,34 @@ export class GameEngineService implements OnDestroy {
 
     switch (type) {
       case 'GEN_COMPLETED':
-      case 'STATE_UPDATED':
-        // Mise à jour de la grille et des stats
         this.grid.set(payload.grid);
         this.generation.set(payload.generation);
         this.updatePopulationHistory(payload.population);
         this.calculateFps();
+        
+        // Notification chirurgicale uniquement pendant la simulation
+        if (payload.added || payload.removed) {
+          this.gridDiff$.next({ 
+            added: payload.added || [], 
+            removed: payload.removed || [] 
+          });
+        }
+        break;
+
+      case 'STATE_UPDATED':
+        this.grid.set(payload.grid);
+        this.generation.set(payload.generation);
+        this.updatePopulationHistory(payload.population);
+        // Force un rendu complet pour les actions manuelles, presets, etc.
+        this.fullRedraw$.next();
         break;
 
       case 'INITIALIZED':
         this.grid.set(payload.grid);
         this.generation.set(0);
         this.populationHistory.set([payload.population]);
+        // Force un rendu complet pour l'initialisation
+        this.fullRedraw$.next();
         break;
     }
   }

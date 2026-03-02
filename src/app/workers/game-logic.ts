@@ -104,10 +104,15 @@ export class GameLogic {
     this.generation = 0;
   }
 
+  private added: number[] = [];
+  private removed: number[] = [];
+
   computeNextGeneration(): void {
     const current = this.bufferA;
     const next = this.bufferB;
     let newPop = 0;
+    this.added = [];
+    this.removed = [];
 
     for (let y = 0; y < this.rows; y++) {
       const yCols = y * this.columns;
@@ -125,6 +130,13 @@ export class GameLogic {
 
         next[index] = willBeAlive;
         if (willBeAlive) newPop++;
+
+        // Tracking changes
+        if (isAlive && willBeAlive === 0) {
+          this.removed.push(index);
+        } else if (!isAlive && willBeAlive === 1) {
+          this.added.push(index);
+        }
       }
     }
 
@@ -139,6 +151,8 @@ export class GameLogic {
       grid: this.bufferA,
       generation: this.generation,
       population: this.population,
+      added: this.added,
+      removed: this.removed
     };
   }
 
