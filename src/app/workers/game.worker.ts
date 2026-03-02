@@ -46,7 +46,16 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
     case 'NEXT_GEN': {
       engine.computeNextGeneration();
       const state = engine.getState();
-      renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
+      
+      const totalCellsCount = rows * columns;
+      const changesCount = state.added.length + state.removed.length;
+      
+      if (changesCount > totalCellsCount * 0.15) {
+        renderer.drawFull(state.grid, rows, columns, cellSize);
+      } else {
+        renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
+      }
+      
       sendResponse('GEN_COMPLETED', true); // Force UI update
       break;
     }
@@ -132,10 +141,21 @@ function stopLoop() {
 function tick() {
   if (!isRunning) return;
 
-  // Calcul et rendu direct (vitesse maximale)
+  // Calcul direct (vitesse maximale)
   engine.computeNextGeneration();
   const state = engine.getState();
-  renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
+  
+  // Stratégie de rendu HYBRIDE
+  const totalCellsCount = rows * columns;
+  const changesCount = state.added.length + state.removed.length;
+  
+  // Si plus de 15% de la grille a changé, le rendu complet est souvent plus efficace
+  // que des milliers d'appels fillRect individuels.
+  if (changesCount > totalCellsCount * 0.15) {
+    renderer.drawFull(state.grid, rows, columns, cellSize);
+  } else {
+    renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
+  }
   
   // Notification UI avec throttling (60Hz)
   sendResponse('GEN_COMPLETED');

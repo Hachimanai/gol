@@ -44,5 +44,5 @@
 - [x] **Web Workers** : Déporter le calcul de la simulation dans un Worker pour ne pas bloquer l'UI.
 - [ ] **WebAssembly (Wasm)** : Implémenter le moteur de calcul en Rust/Wasm pour des performances maximales.
 - [x] **OffscreenCanvas** : Réaliser le rendu graphique dans le Worker.
-- [ ] **Rendu Différentiel** : Optimiser le Canvas pour ne redessiner que les cellules modifiées.
+- [x] **Rendu Différentiel** : Optimiser le Canvas pour ne redessiner que les cellules modifiées.
 - [ ] **Quadtree / Hashlife** : Explorer des structures de données avancées pour les grilles géantes et les motifs répétitifs.
