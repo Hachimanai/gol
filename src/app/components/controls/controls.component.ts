@@ -34,7 +34,7 @@ export class ControlsComponent {
     let val = parseInt(input.value, 10);
     
     // Validation de sécurité : Empêcher les tailles trop petites ou trop grandes
-    if (isNaN(val) || val < 2) val = 2;
+    if (isNaN(val) || val < 1) val = 1;
     if (val > 50) val = 50;
 
     this.engine.config.update((c) => ({ ...c, cellSize: val }));
