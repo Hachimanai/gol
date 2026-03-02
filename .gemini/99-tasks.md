@@ -25,3 +25,11 @@
 ## Phase 5 : Sécurité & Audit [MODE: WHITE HAT]
 - [x] **Audit du Code** : Vérifier qu'aucune injection n'est possible via les paramètres de configuration.
 - [x] **Dépendances** : Scanner les packages pour des vulnérabilités connues.
+
+## Phase 6 : Évolutions & Expérience Utilisateur [MODE: PO]
+- [ ] **Pan & Zoom** : Permettre de naviguer et de zoomer dans les grandes grilles (nécessaire pour le support 6000x6000px).
+- [ ] **Persistance** : Sauvegarder l'état de la grille et les réglages dans le LocalStorage.
+- [ ] **Thématisation** : Ajouter un sélecteur de thèmes de couleurs (Classique, Matrix, Plasma, High Contrast).
+- [ ] **Statistiques Avancées** : Afficher un graphique de la population au fil des générations.
+- [ ] **Raccourcis Clavier** : Implémenter des contrôles rapides (Play/Pause, Reset, Next Step).
+- [ ] **Export/Import** : Permettre de télécharger un motif au format JSON ou RLE.
