@@ -2,15 +2,28 @@
 
 import { GameLogic } from './game-logic';
 import { GameRenderer } from './game-renderer';
-import { WorkerCommand, WorkerResponse, WorkerResponseType, InitializePayload, CellPayload, PresetPayload, ResizePayload, TransferCanvasPayload, UpdateThemePayload } from '../models/worker-messages.model';
+import { WebGLGameRenderer } from './webgl-renderer';
+import { 
+  WorkerCommand, 
+  WorkerResponse, 
+  WorkerResponseType, 
+  InitializePayload, 
+  CellPayload, 
+  PresetPayload, 
+  ResizePayload, 
+  TransferCanvasPayload, 
+  UpdateThemePayload 
+} from '../models/worker-messages.model';
 
 const engine = new GameLogic();
-const renderer = new GameRenderer();
+let renderer2d: GameRenderer | null = null;
+let rendererWebGL: WebGLGameRenderer | null = null;
+let currentRendererType: '2d' | 'webgl' = '2d';
 
 let isRunning = false;
 let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-// On garde une trace de la config pour le rendu
+// Configuration de la grille
 let rows = 0;
 let columns = 0;
 let cellSize = 2;
@@ -23,15 +36,45 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
   const { type, payload } = data;
 
   switch (type) {
+    case 'TRANSFER_CANVAS': {
+      const p = payload as TransferCanvasPayload;
+      currentRendererType = p.rendererType;
+      
+      if (currentRendererType === 'webgl') {
+        rendererWebGL = new WebGLGameRenderer();
+        rendererWebGL.setCanvas(p.canvas, p.width, p.height, p.theme);
+        if (columns > 0 && rows > 0) {
+          rendererWebGL.setupGrid(columns, rows);
+        }
+      } else {
+        renderer2d = new GameRenderer();
+        renderer2d.setCanvas(p.canvas, p.width, p.height, p.theme);
+      }
+      
+      renderAll();
+      break;
+    }
+
     case 'INITIALIZE': {
       stopLoop();
       const p = payload as InitializePayload & { cellSize?: number };
       rows = p.rows;
       columns = p.columns;
-      if (p.cellSize) cellSize = p.cellSize;
+      if (p.cellSize) {
+        cellSize = p.cellSize;
+        if (currentRendererType === 'webgl' && rendererWebGL) {
+          rendererWebGL.updateCellSize(cellSize);
+        }
+      }
+      
       engine.initialize(rows, columns, p.initialDensity);
-      sendResponse('INITIALIZED', true); // Force UI update
-      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
+      
+      if (currentRendererType === 'webgl' && rendererWebGL) {
+        rendererWebGL.setupGrid(columns, rows);
+      }
+      
+      sendResponse('INITIALIZED', true);
+      renderAll();
       break;
     }
 
@@ -45,35 +88,23 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
 
     case 'NEXT_GEN': {
       engine.computeNextGeneration();
-      const state = engine.getState();
-      
-      const totalCellsCount = rows * columns;
-      const changesCount = state.added.length + state.removed.length;
-      
-      if (changesCount > totalCellsCount * 0.15) {
-        renderer.drawFull(state.grid, rows, columns, cellSize);
-      } else {
-        renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
-      }
-      
-      sendResponse('GEN_COMPLETED', true); // Force UI update
+      renderFrame();
+      sendResponse('GEN_COMPLETED', true);
       break;
     }
 
     case 'TOGGLE_CELL': {
       const p = payload as { x: number, y: number };
       engine.toggleCell(p.x, p.y);
-      const isNowAlive = engine.getState().grid[p.y * columns + p.x] === 1;
-      renderer.drawCell(p.x, p.y, isNowAlive, rows, columns, cellSize);
+      renderAll(); // Pour simplifier, on redessine tout
       sendResponse('STATE_UPDATED', true);
       break;
     }
 
     case 'SET_CELL': {
       const p = payload as CellPayload;
-      const isAlive = !!p.isAlive;
-      engine.setCell(p.x, p.y, isAlive);
-      renderer.drawCell(p.x, p.y, isAlive, rows, columns, cellSize);
+      engine.setCell(p.x, p.y, !!p.isAlive);
+      renderAll();
       sendResponse('STATE_UPDATED', true);
       break;
     }
@@ -81,7 +112,7 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
     case 'RANDOMIZE': {
       const p = payload as { density: number };
       engine.randomize(p.density);
-      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
+      renderAll();
       sendResponse('STATE_UPDATED', true);
       break;
     }
@@ -89,7 +120,7 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
     case 'APPLY_PRESET': {
       const p = payload as PresetPayload;
       engine.applyPreset(p.cells);
-      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
+      renderAll();
       sendResponse('STATE_UPDATED', true);
       break;
     }
@@ -98,31 +129,71 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
       const p = payload as ResizePayload & { cellSize?: number, width?: number, height?: number };
       rows = p.rows;
       columns = p.columns;
-      if (p.cellSize) cellSize = p.cellSize;
-      if (p.width && p.height) {
-        renderer.resize(p.width, p.height);
+      if (p.cellSize) {
+        cellSize = p.cellSize;
+        if (currentRendererType === 'webgl' && rendererWebGL) {
+          rendererWebGL.updateCellSize(cellSize);
+        }
       }
+      
+      if (p.width && p.height) {
+        if (currentRendererType === 'webgl' && rendererWebGL) {
+          rendererWebGL.resize(p.width, p.height);
+        } else if (renderer2d) {
+          renderer2d.resize(p.width, p.height);
+        }
+      }
+      
       engine.resize(rows, columns);
-      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
+      
+      if (currentRendererType === 'webgl' && rendererWebGL) {
+        rendererWebGL.setupGrid(columns, rows);
+      }
+      
+      renderAll();
       sendResponse('STATE_UPDATED', true);
-      break;
-    }
-
-    case 'TRANSFER_CANVAS': {
-      const p = payload as TransferCanvasPayload;
-      renderer.setCanvas(p.canvas, p.width, p.height, p.theme);
-      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
     }
 
     case 'UPDATE_THEME': {
       const p = payload as UpdateThemePayload;
-      renderer.updateTheme(p);
-      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
+      if (currentRendererType === 'webgl' && rendererWebGL) {
+        rendererWebGL.updateTheme(p);
+      } else if (renderer2d) {
+        renderer2d.updateTheme(p);
+      }
+      renderAll();
       break;
     }
   }
 });
+
+function renderAll() {
+  const state = engine.getState();
+  if (currentRendererType === 'webgl' && rendererWebGL) {
+    rendererWebGL.render(state.grid);
+  } else if (renderer2d) {
+    renderer2d.drawFull(state.grid, rows, columns, cellSize);
+  }
+}
+
+function renderFrame() {
+  const state = engine.getState();
+  
+  if (currentRendererType === 'webgl' && rendererWebGL) {
+    rendererWebGL.render(state.grid);
+  } else if (renderer2d) {
+    const totalCellsCount = rows * columns;
+    const changesCount = state.added.length + state.removed.length;
+    
+    // Stratégie hybride pour le Canvas 2D
+    if (changesCount > totalCellsCount * 0.15) {
+      renderer2d.drawFull(state.grid, rows, columns, cellSize);
+    } else {
+      renderer2d.drawDiff(state.added, state.removed, rows, columns, cellSize);
+    }
+  }
+}
 
 function startLoop() {
   if (isRunning) return;
@@ -141,33 +212,16 @@ function stopLoop() {
 function tick() {
   if (!isRunning) return;
 
-  // Calcul direct (vitesse maximale)
   engine.computeNextGeneration();
-  const state = engine.getState();
+  renderFrame();
   
-  // Stratégie de rendu HYBRIDE
-  const totalCellsCount = rows * columns;
-  const changesCount = state.added.length + state.removed.length;
-  
-  // Si plus de 15% de la grille a changé, le rendu complet est souvent plus efficace
-  // que des milliers d'appels fillRect individuels.
-  if (changesCount > totalCellsCount * 0.15) {
-    renderer.drawFull(state.grid, rows, columns, cellSize);
-  } else {
-    renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
-  }
-  
-  // Notification UI avec throttling (60Hz)
   sendResponse('GEN_COMPLETED');
-
-  // Relance immédiate
   timeoutId = setTimeout(tick, 0);
 }
 
 function sendResponse(type: WorkerResponseType, force = false) {
   const now = performance.now();
   
-  // On ne s'envoie à l'UI que si forcé (action manuelle) ou si l'intervalle est respecté
   if (!force && (now - lastUiUpdateTime < UI_UPDATE_INTERVAL)) {
     return;
   }

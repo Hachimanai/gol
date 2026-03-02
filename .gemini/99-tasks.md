@@ -45,4 +45,7 @@
 - [ ] **WebAssembly (Wasm)** : Implémenter le moteur de calcul en Rust/Wasm pour des performances maximales.
 - [x] **OffscreenCanvas** : Réaliser le rendu graphique dans le Worker.
 - [x] **Rendu Différentiel** : Optimiser le Canvas pour ne redessiner que les cellules modifiées.
+- [x] **Rendu WebGL** : Implémenter un moteur de rendu WebGL pour gérer des millions de cellules via GPU.
+- [x] **Shaders GLSL** : Développer des shaders pour le rendu instancié et les effets visuels.
+- [x] **Pipeline de Données GPU** : Optimiser le transfert des états de cellules vers les buffers WebGL.
 - [ ] **Quadtree / Hashlife** : Explorer des structures de données avancées pour les grilles géantes et les motifs répétitifs.

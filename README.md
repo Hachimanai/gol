@@ -11,11 +11,13 @@ Une implémentation haute performance du **Jeu de la Vie de John Conway**, déve
 ### ⚡ Performance Extrême
 
 - **Architecture Multi-Thread** : La logique de simulation et le rendu sont déportés dans un **Web Worker** pour libérer le thread principal.
-- **Rendu OffscreenCanvas** : Utilisation de `OffscreenCanvas` pour un rendu graphique ultra-fluide sans bloquer l'interface utilisateur.
+- **Rendu WebGL 2.0 & Instancing** : Utilisation de shaders GLSL et de l'instanciation GPU pour dessiner **des millions de cellules** à 60 FPS.
+- **Rendu Hybride** : Bascule automatique entre WebGL (haute performance) et Canvas 2D (fallback optimisé) selon les besoins.
 - **Optimisation Mémoire** : Représentation de la grille par un `Uint8Array` à plat, minimisant le garbage collection.
 
 ### 🎮 Simulation & Contrôles
 
+- **Grille Dynamique** : Support de grilles géantes (ex: 500x500+) sans ralentissement.
 - **Interaction Intuitive** : Dessinez ou effacez sur la grille par simple clic-glissé (Drag & Draw).
 - **Paramétrage Précis** : Ajustez la vitesse (1ms à 1000ms) et la taille des cellules en temps réel.
 - **Presets Célèbres** : Chargez instantanément des motifs iconiques (Blinker, Glider, Pulsar, Spaceship, Gosper Glider Gun).

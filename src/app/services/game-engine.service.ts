@@ -40,6 +40,7 @@ export class GameEngineService implements OnDestroy {
     resizeMode: 'fill',
     cellSize: 2,
     theme: THEMES[4],
+    rendererType: 'webgl', // WebGL par défaut pour la performance
   });
 
   private worker: Worker | null = null;
@@ -80,7 +81,7 @@ export class GameEngineService implements OnDestroy {
 
         // Initialisation technique : ON FORCE UNE GRILLE VIDE (initialDensity: 0)
         // même si la config par défaut est à 0.3 pour l'UI.
-        const { rows, columns, cellSize } = this.config();
+        const { rows, columns, cellSize, rendererType } = this.config();
         this.sendCommand('INITIALIZE', {
           rows,
           columns,
@@ -100,12 +101,13 @@ export class GameEngineService implements OnDestroy {
 
   transferCanvas(canvas: OffscreenCanvas, width: number, height: number) {
     if (this.worker) {
-      const { theme } = this.config();
+      const { theme, rendererType } = this.config();
       const payload = {
         canvas,
         width,
         height,
         theme: { alive: theme.alive, dead: theme.dead },
+        rendererType,
       };
       this.worker.postMessage({ type: 'TRANSFER_CANVAS', payload }, [canvas]);
     }

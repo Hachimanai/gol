@@ -19,7 +19,7 @@ Pour simuler une équipe multi-agents, adopte le rôle demandé lorsque l'utilis
 
 ### [MODE: DEV]
 
-- **Rôle** : Senior Angular Developer.
+- **Rôle** : Tech Lead.
 - **Tâche** : Implémenter les interfaces définies par l'Architecte.
 - **Focus** : Algorithmes efficaces, gestion des erreurs, respect de la Clean Architecture.
 

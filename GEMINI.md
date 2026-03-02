@@ -25,7 +25,7 @@ Pour simuler une équipe multi-agents, adopte le rôle demandé lorsque l'utilis
 
 ### [MODE: DEV]
 
-- **Rôle** : Senior Angular Developer.
+- **Rôle** : Tech Lead.
 - **Tâche** : Implémenter les interfaces définies par l'Architecte.
 - **Focus** : Algorithmes efficaces, gestion des erreurs, respect de la Clean Architecture.
 
@@ -220,7 +220,10 @@ Les paramètres suivants doivent être exposés dans l'interface :
 - [x] **Web Workers** : Déporter le calcul de la simulation dans un Worker pour ne pas bloquer l'UI.
 - [ ] **WebAssembly (Wasm)** : Implémenter le moteur de calcul en Rust/Wasm pour des performances maximales.
 - [x] **OffscreenCanvas** : Réaliser le rendu graphique dans le Worker.
-- [ ] **Rendu Différentiel** : Optimiser le Canvas pour ne redessiner que les cellules modifiées.
+- [x] **Rendu Différentiel** : Optimiser le Canvas pour ne redessiner que les cellules modifiées.
+- [ ] **Rendu WebGL** : Implémenter un moteur de rendu WebGL pour gérer des millions de cellules via GPU.
+- [ ] **Shaders GLSL** : Développer des shaders pour le rendu instancié et les effets visuels.
+- [ ] **Pipeline de Données GPU** : Optimiser le transfert des états de cellules vers les buffers WebGL.
 - [ ] **Quadtree / Hashlife** : Explorer des structures de données avancées pour les grilles géantes et les motifs répétitifs.
 
 

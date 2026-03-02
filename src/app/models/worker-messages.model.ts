@@ -17,12 +17,12 @@ export type WorkerCommandType =
   }
 
   export interface TransferCanvasPayload {
-  canvas: OffscreenCanvas;
-  width: number;
-  height: number;
-  theme: { alive: string, dead: string };
+    canvas: OffscreenCanvas;
+    width: number;
+    height: number;
+    theme: { alive: string, dead: string };
+    rendererType: '2d' | 'webgl';
   }
-
   export interface UpdateThemePayload {
   alive: string;
   dead: string;

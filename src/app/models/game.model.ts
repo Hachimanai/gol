@@ -37,6 +37,7 @@ export interface GameConfig {
   resizeMode: ResizeMode;
   cellSize: number;
   theme: GameTheme;
+  rendererType: '2d' | 'webgl';
 }
 
 export interface Preset {
