@@ -1,12 +1,20 @@
 /// <reference lib="webworker" />
 
 import { GameLogic } from './game-logic';
+import { GameRenderer } from './game-renderer';
 import { WorkerCommand, WorkerResponse, WorkerResponseType } from '../models/worker-messages.model';
 
 const engine = new GameLogic();
+const renderer = new GameRenderer();
+
 let isRunning = false;
-let speed = 16; // ms entre chaque génération (60 FPS)
+let speed = 16;
 let timeoutId: any = null;
+
+// On garde une trace de la config pour le rendu
+let rows = 0;
+let columns = 0;
+let cellSize = 2;
 
 addEventListener('message', ({ data }: { data: WorkerCommand }) => {
   const { type, payload } = data;
@@ -14,8 +22,12 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
   switch (type) {
     case 'INITIALIZE':
       stopLoop();
-      engine.initialize(payload.rows, payload.columns, payload.initialDensity);
+      rows = payload.rows;
+      columns = payload.columns;
+      if (payload.cellSize) cellSize = payload.cellSize;
+      engine.initialize(rows, columns, payload.initialDensity);
       sendResponse('INITIALIZED');
+      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
 
     case 'START':
@@ -29,38 +41,60 @@ addEventListener('message', ({ data }: { data: WorkerCommand }) => {
 
     case 'SET_SPEED':
       speed = payload.speed;
-      // Si la boucle tourne, on ne fait rien, elle s'adaptera au prochain tick
       break;
 
     case 'NEXT_GEN':
-      // Calcul forcé d'une seule étape (manuel)
       engine.computeNextGeneration();
+      const state = engine.getState();
+      renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
       sendResponse('GEN_COMPLETED');
       break;
 
     case 'TOGGLE_CELL':
       engine.toggleCell(payload.x, payload.y);
+      const isNowAlive = engine.getState().grid[payload.y * columns + payload.x] === 1;
+      renderer.drawCell(payload.x, payload.y, isNowAlive, rows, columns, cellSize);
       sendResponse('STATE_UPDATED');
       break;
 
     case 'SET_CELL':
       engine.setCell(payload.x, payload.y, payload.isAlive);
+      renderer.drawCell(payload.x, payload.y, payload.isAlive, rows, columns, cellSize);
       sendResponse('STATE_UPDATED');
       break;
 
     case 'RANDOMIZE':
       engine.randomize(payload.density);
+      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       sendResponse('STATE_UPDATED');
       break;
 
     case 'APPLY_PRESET':
       engine.applyPreset(payload.cells);
+      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       sendResponse('STATE_UPDATED');
       break;
 
     case 'RESIZE':
-      engine.resize(payload.rows, payload.columns);
+      rows = payload.rows;
+      columns = payload.columns;
+      if (payload.cellSize) cellSize = payload.cellSize;
+      if (payload.width && payload.height) {
+        renderer.resize(payload.width, payload.height);
+      }
+      engine.resize(rows, columns);
+      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       sendResponse('STATE_UPDATED');
+      break;
+
+    case 'TRANSFER_CANVAS':
+      renderer.setCanvas(payload.canvas, payload.width, payload.height, payload.theme);
+      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
+      break;
+
+    case 'UPDATE_THEME':
+      renderer.updateTheme(payload);
+      renderer.drawFull(engine.getState().grid, rows, columns, cellSize);
       break;
   }
 });
@@ -84,10 +118,13 @@ function tick() {
 
   const start = performance.now();
   engine.computeNextGeneration();
+  
+  const state = engine.getState();
+  renderer.drawDiff(state.added, state.removed, rows, columns, cellSize);
+  
   sendResponse('GEN_COMPLETED');
   const end = performance.now();
 
-  // On ajuste le prochain timeout pour compenser le temps de calcul
   const workTime = end - start;
   const nextDelay = Math.max(0, speed - workTime);
 
@@ -97,7 +134,8 @@ function tick() {
 function sendResponse(type: WorkerResponseType) {
   const state = engine.getState();
   
-  // On crée une copie pour le transfert (Transferable)
+  // Note: On continue d'envoyer la grille pour que le service garde son état (stats, populationHistory)
+  // Même si le rendu est déporté.
   const gridCopy = new Uint8Array(state.grid);
   
   const response: WorkerResponse = {

@@ -8,11 +8,27 @@ export type WorkerCommandType =
   | 'SET_CELL'
   | 'RANDOMIZE'
   | 'APPLY_PRESET'
-  | 'RESIZE';
-export interface WorkerCommand {
+  | 'RESIZE'
+  | 'TRANSFER_CANVAS'
+  | 'UPDATE_THEME';
+
+  export interface WorkerCommand {
   type: WorkerCommandType;
   payload?: any;
-}
+  }
+
+  export interface TransferCanvasPayload {
+  canvas: OffscreenCanvas;
+  width: number;
+  height: number;
+  theme: { alive: string, dead: string };
+  }
+
+  export interface UpdateThemePayload {
+  alive: string;
+  dead: string;
+  }
+
 
 export interface InitializePayload {
   rows: number;

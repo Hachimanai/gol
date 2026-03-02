@@ -42,10 +42,11 @@ export class GameEngineService implements OnDestroy {
   constructor() {
     this.initWorker();
 
-    // Réaction aux changements de configuration (vitesse, thème)
+    // Réaction aux changements de configuration (vitesse, thème, cellSize)
     effect(() => {
       const config = this.config();
       this.updateWorkerSpeed(config.speed);
+      this.updateWorkerTheme(config.theme);
     });
   }
 
@@ -73,8 +74,8 @@ export class GameEngineService implements OnDestroy {
 
         // Initialisation technique : ON FORCE UNE GRILLE VIDE (initialDensity: 0)
         // même si la config par défaut est à 0.3 pour l'UI.
-        const { rows, columns } = this.config();
-        this.sendCommand('INITIALIZE', { rows, columns, initialDensity: 0 });
+        const { rows, columns, cellSize } = this.config();
+        this.sendCommand('INITIALIZE', { rows, columns, cellSize, initialDensity: 0 });
         this.error.set(null);
       } catch (e) {
         this.error.set('Failed to initialize Game Engine Worker.');
@@ -84,6 +85,23 @@ export class GameEngineService implements OnDestroy {
       this.error.set('Web Workers are not supported in this browser.');
       console.error('Web Workers are not supported in this environment.');
     }
+  }
+
+  transferCanvas(canvas: OffscreenCanvas, width: number, height: number) {
+    if (this.worker) {
+      const { theme } = this.config();
+      const payload = {
+        canvas,
+        width,
+        height,
+        theme: { alive: theme.alive, dead: theme.dead }
+      };
+      this.worker.postMessage({ type: 'TRANSFER_CANVAS', payload }, [canvas]);
+    }
+  }
+
+  private updateWorkerTheme(theme: GameTheme) {
+    this.sendCommand('UPDATE_THEME', { alive: theme.alive, dead: theme.dead });
   }
 
   private handleWorkerResponse(response: WorkerResponse) {
@@ -227,14 +245,24 @@ export class GameEngineService implements OnDestroy {
     }
   }
 
-  updateDimensions(newRows: number, newCols: number): void {
+  updateDimensions(newRows: number, newCols: number, width?: number, height?: number): void {
     const currentConfig = untracked(() => this.config());
     if (currentConfig.resizeMode !== 'fill') return;
 
-    if (newRows === currentConfig.rows && newCols === currentConfig.columns)
-      return;
+    const rowsChanged = newRows !== currentConfig.rows || newCols !== currentConfig.columns;
+    
+    if (rowsChanged) {
+      this.config.update((c) => ({ ...c, rows: newRows, columns: newCols }));
+    }
 
-    this.config.update((c) => ({ ...c, rows: newRows, columns: newCols }));
-    this.sendCommand('RESIZE', { rows: newRows, columns: newCols });
+    // On envoie systématiquement la commande RESIZE au worker si on a des dimensions px,
+    // car le canvas doit peut-être se redimensionner même si le nombre de cellules est identique.
+    this.sendCommand('RESIZE', { 
+      rows: newRows, 
+      columns: newCols, 
+      width, 
+      height,
+      cellSize: currentConfig.cellSize
+    });
   }
 }

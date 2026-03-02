@@ -46,40 +46,47 @@ describe('GameEngineService (Worker Proxy)', () => {
   it('should send START command when start() is called', () => {
     service.start();
     expect(service.isRunning()).toBeTrue();
-    expect(lastSentCommand?.type).toBe('START');
-    expect(lastSentCommand?.payload.speed).toBe(service.config().speed);
+    const startCall = mockWorker.postMessage.calls.all().find((c: any) => c.args[0].type === 'START');
+    expect(startCall).toBeDefined();
+    expect(startCall.args[0].payload.speed).toBe(service.config().speed);
   });
 
   it('should send STOP command when stop() is called', () => {
     service.start(); // S'assurer qu'il tourne
     service.stop();
     expect(service.isRunning()).toBeFalse();
-    expect(lastSentCommand?.type).toBe('STOP');
+    const stopCall = mockWorker.postMessage.calls.all().find((c: any) => c.args[0].type === 'STOP');
+    expect(stopCall).toBeDefined();
   });
 
   it('should send INITIALIZE when reset() is called', () => {
     service.reset();
-    expect(lastSentCommand?.type).toBe('INITIALIZE');
-    expect(lastSentCommand?.payload.initialDensity).toBe(0);
+    const initCall = mockWorker.postMessage.calls.all().find((c: any) => c.args[0].type === 'INITIALIZE' && c.args[0].payload.initialDensity === 0);
+    expect(initCall).toBeDefined();
   });
 
   it('should send SET_SPEED when speed is updated', () => {
     service.updateSpeed(50);
     TestBed.flushEffects();
-    expect(lastSentCommand?.type).toBe('SET_SPEED');
-    expect(lastSentCommand?.payload.speed).toBe(50);
+    // On cherche le DERNIER appel de type SET_SPEED
+    const speedCalls = mockWorker.postMessage.calls.all().filter((c: any) => c.args[0].type === 'SET_SPEED');
+    const lastSpeedCall = speedCalls[speedCalls.length - 1];
+    expect(lastSpeedCall).toBeDefined();
+    expect(lastSpeedCall.args[0].payload.speed).toBe(50);
   });
 
   it('should send TOGGLE_CELL command', () => {
     service.toggleCell(10, 20);
-    expect(lastSentCommand?.type).toBe('TOGGLE_CELL');
-    expect(lastSentCommand?.payload).toEqual({ x: 10, y: 20 });
+    const toggleCall = mockWorker.postMessage.calls.all().find((c: any) => c.args[0].type === 'TOGGLE_CELL');
+    expect(toggleCall).toBeDefined();
+    expect(toggleCall.args[0].payload).toEqual({ x: 10, y: 20 });
   });
 
   it('should send APPLY_PRESET command', () => {
     service.applyPreset('Blinker');
-    expect(lastSentCommand?.type).toBe('APPLY_PRESET');
-    expect(lastSentCommand?.payload.cells).toBeDefined();
+    const presetCall = mockWorker.postMessage.calls.all().find((c: any) => c.args[0].type === 'APPLY_PRESET');
+    expect(presetCall).toBeDefined();
+    expect(presetCall.args[0].payload.cells).toBeDefined();
   });
 
   it('should update signals when receiving Worker message', () => {
@@ -114,14 +121,14 @@ describe('GameEngineService (Worker Proxy)', () => {
     }
     
     expect(service.populationHistory().length).toBe(50);
-    // Le premier élément doit être le 11ème (index 10) car on a shifté 10 fois
     expect(service.populationHistory()[0]).toBe(10);
   });
 
   it('should send RESIZE command when dimensions change', () => {
     // Mode fill par défaut
-    service.updateDimensions(100, 150);
-    expect(lastSentCommand?.type).toBe('RESIZE');
-    expect(lastSentCommand?.payload).toEqual({ rows: 100, columns: 150 });
+    service.updateDimensions(100, 150, 800, 600);
+    const resizeCall = mockWorker.postMessage.calls.all().find((c: any) => c.args[0].type === 'RESIZE');
+    expect(resizeCall).toBeDefined();
+    expect(resizeCall.args[0].payload).toEqual({ rows: 100, columns: 150, width: 800, height: 600 });
   });
 });
