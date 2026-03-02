@@ -17,7 +17,14 @@ describe('GridComponent', () => {
     component = fixture.componentInstance;
     engine = TestBed.inject(GameEngineService);
     
-    engine.config.set({ rows: 5, columns: 5, speed: 100, initialDensity: 0 });
+    engine.config.set({ 
+      rows: 5, 
+      columns: 5, 
+      speed: 100, 
+      initialDensity: 0, 
+      resizeMode: 'fill', 
+      cellSize: 10 
+    });
     engine.reset();
     
     fixture.detectChanges();

@@ -126,6 +126,7 @@ Pour simuler une équipe multi-agents, adopte le rôle demandé lorsque l'utilis
   - **Subject line**: Concise (50 chars max), capitalized, no period at the end. Use imperative mood (e.g., "Add cell size control" instead of "Added...").
   - **Body (optional)**: Detailed explanation of "what" and "why" if the change is complex.
 - **Verified Commits**: Ensure the code builds and passes tests before committing.
+- **Automation**: Commit changes autonomously after each significant task or at the user's request, following these conventions.
 
 
 ## Accessibility Requirements

@@ -15,7 +15,14 @@ describe('ControlsComponent', () => {
     // Configurer les signaux simulés
     (mockEngine as any).isRunning = signal(false);
     (mockEngine as any).generation = signal(0);
-    (mockEngine as any).config = signal({ rows: 40, columns: 60, speed: 100, initialDensity: 0.25 });
+    (mockEngine as any).config = signal({ 
+      rows: 40, 
+      columns: 60, 
+      speed: 100, 
+      initialDensity: 0.25, 
+      resizeMode: 'fill', 
+      cellSize: 10 
+    });
     (mockEngine as any).grid = signal(new Uint8Array(0));
 
     await TestBed.configureTestingModule({
@@ -51,10 +58,10 @@ describe('ControlsComponent', () => {
     expect(mockEngine.stop).toHaveBeenCalled();
   });
 
-  it('should update speed when range input changes', () => {
-    const rangeInput = fixture.nativeElement.querySelector('input[type="range"]');
-    rangeInput.value = '500';
-    rangeInput.dispatchEvent(new Event('input'));
+  it('should update speed when number input changes', () => {
+    const numberInput = fixture.nativeElement.querySelector('input[type="number"]#speed-input');
+    numberInput.value = '500';
+    numberInput.dispatchEvent(new Event('input'));
     expect(mockEngine.config().speed).toBe(500);
   });
 
@@ -62,6 +69,6 @@ describe('ControlsComponent', () => {
     (mockEngine as any).generation.set(10);
     fixture.detectChanges();
     const stats = fixture.nativeElement.querySelector('.stats');
-    expect(stats.textContent).toContain('Generation: 10');
+    expect(stats.textContent).toContain('Gen: 10');
   });
 });
