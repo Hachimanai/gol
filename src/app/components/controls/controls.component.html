@@ -3,6 +3,7 @@
     <h1>Game Of Life</h1>
     <div class="stats">
       <span>Gen: <strong>{{ engine.generation() }}</strong></span>
+      <span class="fps-counter">FPS: <strong>{{ engine.fps() | number:'1.0-0' }}</strong></span>
     </div>
   </div>
 

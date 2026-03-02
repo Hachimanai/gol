@@ -16,6 +16,7 @@ describe('ControlsComponent', () => {
     // Injecter les signaux directement dans l'instance espionnée
     Object.defineProperty(mockEngine, 'isRunning', { value: signal(false), writable: true });
     Object.defineProperty(mockEngine, 'generation', { value: signal(0), writable: true });
+    Object.defineProperty(mockEngine, 'fps', { value: signal(0), writable: true });
     Object.defineProperty(mockEngine, 'config', { 
       value: signal({ 
         rows: 40, 
@@ -85,5 +86,13 @@ describe('ControlsComponent', () => {
     fixture.detectChanges();
     const stats = fixture.nativeElement.querySelector('.stats');
     expect(stats.textContent).toContain('Gen: 10');
+  });
+
+  it('should display the current FPS', () => {
+    const engine = mockEngine as unknown as { fps: WritableSignal<number> };
+    engine.fps.set(60);
+    fixture.detectChanges();
+    const stats = fixture.nativeElement.querySelector('.stats');
+    expect(stats.textContent).toContain('FPS: 60');
   });
 });

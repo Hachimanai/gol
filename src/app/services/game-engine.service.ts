@@ -17,6 +17,7 @@ export class GameEngineService implements OnDestroy {
   readonly grid = signal<Uint8Array>(new Uint8Array(0));
   readonly isRunning = signal<boolean>(false);
   readonly generation = signal<number>(0);
+  readonly fps = signal<number>(0);
   readonly config = signal<GameConfig>({
     rows: 60,
     columns: 80,
@@ -112,21 +113,38 @@ export class GameEngineService implements OnDestroy {
   start(): void {
     if (this.isRunning()) return;
     this.isRunning.set(true);
-    this.lastFrameTime = performance.now();
-    this.loop();
+    this.lastFrameTime = 0; // Marqueur pour la première itération de loop()
+    this.frameId = requestAnimationFrame(this.loop);
   }
 
-  private loop = () => {
-    if (!this.isRunning()) return;
+  private loop = (timestamp: number) => {
+    if (!this.isRunning()) {
+      this.fps.set(0);
+      return;
+    }
 
-    const now = performance.now();
-    const delta = now - this.lastFrameTime;
+    // Si c'est la toute première frame après un start(), on initialise juste le temps
+    if (this.lastFrameTime === 0) {
+      this.lastFrameTime = timestamp;
+      this.frameId = requestAnimationFrame(this.loop);
+      return;
+    }
+
+    const delta = timestamp - this.lastFrameTime;
+
+    // Calcul du FPS avec lissage (exponential moving average)
+    // On n'affiche que si le delta est réaliste (> 0)
+    if (delta > 0) {
+      const currentFps = 1000 / delta;
+      // Lissage plus agressif au début pour stabiliser l'affichage
+      this.fps.update(f => f === 0 ? currentFps : f * 0.95 + currentFps * 0.05);
+    }
 
     // On ne calcule la génération que si le délai 'speed' est écoulé
-    // Pour du 60 FPS pur, 'speed' sera fixé à 16ms ou moins.
     if (delta >= this.config().speed) {
       this.nextGeneration();
-      this.lastFrameTime = now - (delta % this.config().speed);
+      // On ajuste lastFrameTime en fonction du timestamp réel pour garder la cadence
+      this.lastFrameTime = timestamp - (delta % this.config().speed);
     }
 
     this.frameId = requestAnimationFrame(this.loop);
