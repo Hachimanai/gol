@@ -14,7 +14,7 @@ export class GridComponent implements AfterViewInit, OnDestroy {
   private wrapperRef = viewChild.required<ElementRef<HTMLDivElement>>('wrapper');
   engine = inject(GameEngineService);
 
-  private readonly GAP = 1;
+  private readonly GAP = 0;
   private dynamicCellSize = 10;
   private resizeObserver?: ResizeObserver;
 
@@ -61,7 +61,7 @@ export class GridComponent implements AfterViewInit, OnDestroy {
     const config = this.engine.config();
     
     if (config.resizeMode === 'fill') {
-      const step = config.cellSize + this.GAP;
+      const step = config.cellSize; // GAP est 0
       const columns = Math.floor(width / step);
       const rows = Math.floor(height / step);
       this.dynamicCellSize = config.cellSize;
@@ -72,8 +72,8 @@ export class GridComponent implements AfterViewInit, OnDestroy {
       this.setupCanvasDimensions(width, height);
     } else if (config.resizeMode === 'fit') {
       const { rows, columns } = config;
-      const cellW = (width - (columns * this.GAP)) / columns;
-      const cellH = (height - (rows * this.GAP)) / rows;
+      const cellW = width / columns;
+      const cellH = height / rows;
       
       this.dynamicCellSize = Math.max(1, Math.floor(Math.min(cellW, cellH)));
       this.setupCanvasDimensions(width, height);
@@ -96,28 +96,15 @@ export class GridComponent implements AfterViewInit, OnDestroy {
 
     const grid = this.engine.grid();
     const { rows, columns, cellSize, theme } = this.engine.config();
-    const step = cellSize + this.GAP;
+    const step = cellSize; // GAP est 0
 
-    // Calcul du centrage pour que la grille soit au milieu si elle ne remplit pas tout parfaitement
-    const offsetX = Math.floor((canvas.width - (columns * step - this.GAP)) / 2);
-    const offsetY = Math.floor((canvas.height - (rows * step - this.GAP)) / 2);
+    // Calcul du centrage
+    const offsetX = Math.floor((canvas.width - (columns * step)) / 2);
+    const offsetY = Math.floor((canvas.height - (rows * step)) / 2);
 
     // Fond (couleur des cellules mortes)
     ctx.fillStyle = theme.dead;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Dessiner les lignes de la grille (optionnel, basé sur GAP)
-    if (this.GAP > 0) {
-      ctx.fillStyle = theme.grid;
-      // Lignes verticales
-      for (let x = 0; x <= columns; x++) {
-        ctx.fillRect(offsetX + x * step - this.GAP, offsetY, this.GAP, rows * step - this.GAP);
-      }
-      // Lignes horizontales
-      for (let y = 0; y <= rows; y++) {
-        ctx.fillRect(offsetX, offsetY + y * step - this.GAP, columns * step - this.GAP, this.GAP);
-      }
-    }
 
     // Cellules vivantes
     ctx.fillStyle = theme.alive;

@@ -27,8 +27,8 @@ export class GameEngineService implements OnDestroy {
     speed: 16, // Proche de 60 FPS (1000/60)
     initialDensity: 0.3,
     resizeMode: 'fill',
-    cellSize: 10,
-    theme: THEMES[0],
+    cellSize: 2,
+    theme: THEMES[4],
   });
 
   private worker: Worker | null = null;
@@ -113,8 +113,12 @@ export class GameEngineService implements OnDestroy {
     const now = performance.now();
     if (this.lastFrameTime > 0) {
       const delta = now - this.lastFrameTime;
-      const currentFps = 1000 / delta;
-      this.fps.update((f) => (f === 0 ? currentFps : f * 0.9 + currentFps * 0.1));
+      // On ignore les deltas nuls ou trop faibles (inférieurs à 1ms)
+      // pour éviter l'affichage de "Infinity" ou des pics irréalistes.
+      if (delta > 1) {
+        const currentFps = 1000 / delta;
+        this.fps.update((f) => (f === 0 ? currentFps : f * 0.9 + currentFps * 0.1));
+      }
     }
     this.lastFrameTime = now;
   }
