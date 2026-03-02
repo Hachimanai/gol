@@ -44,6 +44,13 @@ export class GameEngineService implements OnDestroy {
     // Si on est en mode 'fixed' ou 'fit', on ne change pas le nombre de cellules
     if (currentConfig.resizeMode !== 'fill') return;
 
+    // Validation de sécurité : Empêcher des tailles excessives
+    const MAX_DIM = 500;
+    if (newRows < 1) newRows = 1;
+    if (newCols < 1) newCols = 1;
+    if (newRows > MAX_DIM) newRows = MAX_DIM;
+    if (newCols > MAX_DIM) newCols = MAX_DIM;
+
     if (newRows === currentConfig.rows && newCols === currentConfig.columns) return;
 
     const oldGrid = untracked(() => this.grid());
