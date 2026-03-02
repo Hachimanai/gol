@@ -3,7 +3,6 @@ import { AppComponent } from './app.component';
 import { GridComponent } from './components/grid/grid.component';
 import { ControlsComponent } from './components/controls/controls.component';
 import { GameEngineService } from './services/game-engine.service';
-import { signal } from '@angular/core';
 import { THEMES } from './constants/themes';
 
 describe('AppComponent', () => {
