@@ -25,7 +25,7 @@ Pour simuler une équipe multi-agents, adopte le rôle demandé lorsque l'utilis
 
 ### [MODE: DEV]
 
-- **Rôle** : Senior Go Developer.
+- **Rôle** : Senior Angular Developer.
 - **Tâche** : Implémenter les interfaces définies par l'Architecte.
 - **Focus** : Algorithmes efficaces, gestion des erreurs, respect de la Clean Architecture.
 
@@ -216,6 +216,7 @@ Les paramètres suivants doivent être exposés dans l'interface :
 - [ ] **Export/Import** : Permettre de télécharger un motif au format JSON ou RLE.
 
 ## Phase 7 : Optimisations de Performance Extrêmes [MODE: ARCHITECT]
+
 - [ ] **Web Workers** : Déporter le calcul de la simulation dans un Worker pour ne pas bloquer l'UI.
 - [ ] **WebAssembly (Wasm)** : Implémenter le moteur de calcul en Rust/Wasm pour des performances maximales.
 - [ ] **OffscreenCanvas** : Réaliser le rendu graphique dans le Worker.

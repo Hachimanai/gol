@@ -24,6 +24,16 @@
       Step
     </button>
     <button (click)="engine.reset()" title="Clear Grid (R)">Reset</button>
+    <div class="setting-item">
+      <label for="density-input">Density</label>
+      <div class="input-with-unit">
+        <input type="number" id="density-input" min="0" max="100" step="5" 
+          [value]="engine.config().initialDensity * 100" 
+          (input)="updateDensity($event)">
+        <span>%</span>
+      </div>
+    </div>
+
     <button (click)="engine.randomize()" title="Randomize Grid (C)">
       Random
     </button>

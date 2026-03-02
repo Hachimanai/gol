@@ -8,14 +8,16 @@ import {
 import { GameConfig, GameTheme } from '../models/game.model';
 import { PRESETS } from '../constants/presets';
 import { THEMES } from '../constants/themes';
+import { WorkerCommand, WorkerCommandType, WorkerResponse, WorkerResponseType } from '../models/worker-messages.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GameEngineService implements OnDestroy {
-  // On expose un Uint8Array pour le rendu Canvas (0 = mort, 1 = vivant)
+  // Signals exposés pour l'UI
   readonly grid = signal<Uint8Array>(new Uint8Array(0));
   readonly isRunning = signal<boolean>(false);
+  readonly error = signal<string | null>(null);
   readonly generation = signal<number>(0);
   readonly fps = signal<number>(0);
   readonly populationHistory = signal<number[]>([0]);
@@ -23,287 +25,192 @@ export class GameEngineService implements OnDestroy {
     rows: 60,
     columns: 80,
     speed: 16, // Proche de 60 FPS (1000/60)
-    initialDensity: 0.25,
+    initialDensity: 0.3,
     resizeMode: 'fill',
     cellSize: 10,
     theme: THEMES[0],
   });
 
-  private bufferA!: Uint8Array;
-  private bufferB!: Uint8Array;
-  private frameId: number | null = null;
+  private worker: Worker | null = null;
   private lastFrameTime = 0;
   private readonly maxHistory = 50;
 
   constructor() {
-    this.initBuffers();
+    this.initWorker();
 
+    // Réaction aux changements de configuration (vitesse, thème)
     effect(() => {
-      this.config();
-      if (untracked(() => this.isRunning())) {
-        untracked(() => {
-          this.stop();
-          this.start();
-        });
-      }
+      const config = this.config();
+      this.updateWorkerSpeed(config.speed);
     });
   }
 
-  updateDimensions(newRows: number, newCols: number): void {
-    const currentConfig = untracked(() => this.config());
+  private initWorker() {
+    if (typeof Worker !== 'undefined') {
+      try {
+        // Création du Worker
+        this.worker = new Worker(
+          new URL('../workers/game.worker', import.meta.url)
+        );
 
-    // Si on est en mode 'fixed' ou 'fit', on ne change pas le nombre de cellules
-    if (currentConfig.resizeMode !== 'fill') return;
+        // Gestion des messages reçus du Worker
+        this.worker.onmessage = ({ data }: { data: WorkerResponse }) => {
+          this.handleWorkerResponse(data);
+        };
 
-    // Validation de sécurité : Empêcher des tailles excessives
-    const MAX_DIM = 6000;
-    if (newRows < 1) newRows = 1;
-    if (newCols < 1) newCols = 1;
-    if (newRows > MAX_DIM) newRows = MAX_DIM;
-    if (newCols > MAX_DIM) newCols = MAX_DIM;
+        // Gestion des erreurs critiques du Worker
+        this.worker.onerror = (err) => {
+          this.handleWorkerError(err);
+        };
 
-    if (newRows === currentConfig.rows && newCols === currentConfig.columns)
-      return;
+        this.worker.onmessageerror = (err) => {
+          this.handleWorkerError(err);
+        };
 
-    const oldGrid = untracked(() => this.grid());
-    const oldRows = currentConfig.rows;
-    const oldCols = currentConfig.columns;
-
-    // Mettre à jour la config
-    this.config.update((c) => ({ ...c, rows: newRows, columns: newCols }));
-
-    // Recréer les buffers
-    this.bufferA = new Uint8Array(newRows * newCols);
-    this.bufferB = new Uint8Array(newRows * newCols);
-
-    let currentPop = 0;
-    // Tenter de copier l'ancien état au centre
-    if (oldGrid.length > 0) {
-      const rowOffset = Math.floor((newRows - oldRows) / 2);
-      const colOffset = Math.floor((newCols - oldCols) / 2);
-
-      for (let y = 0; y < oldRows; y++) {
-        for (let x = 0; x < oldCols; x++) {
-          const targetY = y + rowOffset;
-          const targetX = x + colOffset;
-          if (
-            targetY >= 0 &&
-            targetY < newRows &&
-            targetX >= 0 &&
-            targetX < newCols
-          ) {
-            const val = oldGrid[y * oldCols + x];
-            this.bufferA[targetY * newCols + targetX] = val;
-            if (val) currentPop++;
-          }
-        }
+        // Initialisation technique : ON FORCE UNE GRILLE VIDE (initialDensity: 0)
+        // même si la config par défaut est à 0.3 pour l'UI.
+        const { rows, columns } = this.config();
+        this.sendCommand('INITIALIZE', { rows, columns, initialDensity: 0 });
+        this.error.set(null);
+      } catch (e) {
+        this.error.set('Failed to initialize Game Engine Worker.');
+        console.error(e);
       }
+    } else {
+      this.error.set('Web Workers are not supported in this browser.');
+      console.error('Web Workers are not supported in this environment.');
     }
+  }
 
-    this.grid.set(new Uint8Array(this.bufferA));
-    this.populationHistory.update(h => {
-      const newH = [...h];
-      newH[newH.length - 1] = currentPop;
-      return newH;
+  private handleWorkerResponse(response: WorkerResponse) {
+    const { type, payload } = response;
+
+    switch (type) {
+      case 'GEN_COMPLETED':
+      case 'STATE_UPDATED':
+        // Mise à jour de la grille et des stats
+        this.grid.set(payload.grid);
+        this.generation.set(payload.generation);
+        this.updatePopulationHistory(payload.population);
+        this.calculateFps();
+        break;
+
+      case 'INITIALIZED':
+        this.grid.set(payload.grid);
+        this.generation.set(0);
+        this.populationHistory.set([payload.population]);
+        break;
+    }
+  }
+
+  private handleWorkerError(error: ErrorEvent | MessageEvent) {
+    console.error('GameEngine Worker Error:', error);
+    this.error.set('Game Engine encountered a critical error.');
+    this.stop(); // Arrêt de sécurité
+  }
+
+  private calculateFps() {
+    const now = performance.now();
+    if (this.lastFrameTime > 0) {
+      const delta = now - this.lastFrameTime;
+      const currentFps = 1000 / delta;
+      this.fps.update((f) => (f === 0 ? currentFps : f * 0.9 + currentFps * 0.1));
+    }
+    this.lastFrameTime = now;
+  }
+
+  private updatePopulationHistory(newPop: number) {
+    this.populationHistory.update((hist) => {
+      const isNewGen = this.isRunning();
+      if (isNewGen) {
+        const newHist = [...hist, newPop];
+        if (newHist.length > this.maxHistory) newHist.shift();
+        return newHist;
+      } else {
+        // En mode édition, on remplace juste la dernière valeur
+        const newHist = [...hist];
+        newHist[newHist.length - 1] = newPop;
+        return newHist;
+      }
     });
   }
 
-  private initBuffers() {
-    const { rows, columns } = this.config();
-    this.bufferA = new Uint8Array(rows * columns);
-    this.bufferB = new Uint8Array(rows * columns);
-    this.grid.set(this.bufferA);
+  private sendCommand(type: WorkerCommandType, payload?: any) {
+    if (this.worker) {
+      const command: WorkerCommand = { type, payload };
+      this.worker.postMessage(command);
+    }
   }
 
   ngOnDestroy() {
     this.stop();
+    this.worker?.terminate();
   }
 
   start(): void {
     if (this.isRunning()) return;
     this.isRunning.set(true);
-    this.lastFrameTime = 0; // Marqueur pour la première itération de loop()
-    this.frameId = requestAnimationFrame(this.loop);
+    this.lastFrameTime = 0;
+    this.sendCommand('START', { speed: this.config().speed });
   }
 
-  private loop = (timestamp: number) => {
-    if (!this.isRunning()) {
-      this.fps.set(0);
-      return;
-    }
-
-    // Si c'est la toute première frame après un start(), on initialise juste le temps
-    if (this.lastFrameTime === 0) {
-      this.lastFrameTime = timestamp;
-      this.frameId = requestAnimationFrame(this.loop);
-      return;
-    }
-
-    const delta = timestamp - this.lastFrameTime;
-
-    // Calcul du FPS avec lissage (exponential moving average)
-    // On n'affiche que si le delta est réaliste (> 0)
-    if (delta > 0) {
-      const currentFps = 1000 / delta;
-      // Lissage plus agressif au début pour stabiliser l'affichage
-      this.fps.update(f => f === 0 ? currentFps : f * 0.95 + currentFps * 0.05);
-    }
-
-    // On ne calcule la génération que si le délai 'speed' est écoulé
-    if (delta >= this.config().speed) {
-      this.nextGeneration();
-      // On ajuste lastFrameTime en fonction du timestamp réel pour garder la cadence
-      this.lastFrameTime = timestamp - (delta % this.config().speed);
-    }
-
-    this.frameId = requestAnimationFrame(this.loop);
-  };
-
   stop(): void {
+    if (!this.isRunning()) return;
     this.isRunning.set(false);
-    if (this.frameId !== null) {
-      cancelAnimationFrame(this.frameId);
-      this.frameId = null;
-    }
+    this.fps.set(0);
+    this.sendCommand('STOP');
   }
 
   reset(): void {
     this.stop();
-    this.generation.set(0);
-    this.initBuffers();
-    this.populationHistory.set([0]);
+    const { rows, columns } = this.config();
+    this.sendCommand('INITIALIZE', { rows, columns, initialDensity: 0 });
   }
 
   updateSpeed(speed: number): void {
     this.config.update((c) => ({ ...c, speed }));
   }
 
+  private updateWorkerSpeed(speed: number) {
+    this.sendCommand('SET_SPEED', { speed });
+  }
+
   updateTheme(theme: GameTheme): void {
     this.config.update((c) => ({ ...c, theme }));
   }
 
-  randomize(): void {
-    this.generation.set(0);
-    const { initialDensity: density } = this.config();
-    let pop = 0;
-    for (let i = 0; i < this.bufferA.length; i++) {
-      const isAlive = Math.random() < density ? 1 : 0;
-      this.bufferA[i] = isAlive;
-      if (isAlive) pop++;
-    }
-    this.grid.set(new Uint8Array(this.bufferA));
-    this.populationHistory.set([pop]);
+  randomize(density?: number): void {
+    const d = density !== undefined ? density : this.config().initialDensity;
+    this.sendCommand('RANDOMIZE', { density: d });
   }
 
   toggleCell(x: number, y: number): void {
-    const { columns } = this.config();
-    const index = y * columns + x;
-    const newState = this.bufferA[index] ? 0 : 1;
-    this.bufferA[index] = newState;
-    this.grid.set(new Uint8Array(this.bufferA));
-    
-    this.populationHistory.update(hist => {
-      const newHist = [...hist];
-      newHist[newHist.length - 1] += newState ? 1 : -1;
-      return newHist;
-    });
+    this.sendCommand('TOGGLE_CELL', { x, y });
   }
 
   setCellState(x: number, y: number, isAlive: boolean): void {
-    const { columns } = this.config();
-    const index = y * columns + x;
-    const newState = isAlive ? 1 : 0;
-    if (this.bufferA[index] !== newState) {
-      this.bufferA[index] = newState;
-      this.grid.set(new Uint8Array(this.bufferA));
-      
-      this.populationHistory.update(hist => {
-        const newHist = [...hist];
-        newHist[newHist.length - 1] += newState ? 1 : -1;
-        return newHist;
-      });
-    }
+    this.sendCommand('SET_CELL', { x, y, isAlive });
   }
 
   nextGeneration(): void {
-    const { rows, columns } = this.config();
-    const current = this.bufferA;
-    const next = this.bufferB;
-    let newPop = 0;
-
-    for (let y = 0; y < rows; y++) {
-      const yCols = y * columns;
-      for (let x = 0; x < columns; x++) {
-        const index = yCols + x;
-        const neighbors = this.countNeighbors(current, x, y, rows, columns);
-        const isAlive = current[index] === 1;
-
-        let willBeAlive = 0;
-        if (isAlive) {
-          willBeAlive = neighbors === 2 || neighbors === 3 ? 1 : 0;
-        } else {
-          willBeAlive = neighbors === 3 ? 1 : 0;
-        }
-        
-        next[index] = willBeAlive;
-        if (willBeAlive) newPop++;
-      }
-    }
-
-    // Swap buffers sans réallocation
-    this.bufferA.set(next);
-    this.grid.set(new Uint8Array(this.bufferA));
-    this.generation.update((g) => g + 1);
-    
-    this.populationHistory.update(hist => {
-      const newHist = [...hist, newPop];
-      if (newHist.length > this.maxHistory) newHist.shift();
-      return newHist;
-    });
+    this.sendCommand('NEXT_GEN');
   }
 
   applyPreset(presetName: string): void {
     const preset = PRESETS.find((p) => p.name === presetName);
-    if (!preset) return;
-
-    this.reset();
-    const { rows, columns } = this.config();
-    const midX = Math.floor(columns / 2);
-    const midY = Math.floor(rows / 2);
-
-    let pop = 0;
-    preset.cells.forEach((c) => {
-      const targetX = midX + c.x;
-      const targetY = midY + c.y;
-      if (targetX >= 0 && targetX < columns && targetY >= 0 && targetY < rows) {
-        this.bufferA[targetY * columns + targetX] = 1;
-        pop++;
-      }
-    });
-    this.grid.set(new Uint8Array(this.bufferA));
-    this.populationHistory.set([pop]);
+    if (preset) {
+      this.sendCommand('APPLY_PRESET', { cells: preset.cells });
+    }
   }
 
-  private countNeighbors(
-    grid: Uint8Array,
-    x: number,
-    y: number,
-    rows: number,
-    cols: number,
-  ): number {
-    let count = 0;
-    for (let i = -1; i <= 1; i++) {
-      const ni = y + i;
-      if (ni < 0 || ni >= rows) continue;
-      const niCols = ni * cols;
-      for (let j = -1; j <= 1; j++) {
-        if (i === 0 && j === 0) continue;
-        const nj = x + j;
-        if (nj >= 0 && nj < cols) {
-          if (grid[niCols + nj] === 1) count++;
-        }
-      }
-    }
-    return count;
+  updateDimensions(newRows: number, newCols: number): void {
+    const currentConfig = untracked(() => this.config());
+    if (currentConfig.resizeMode !== 'fill') return;
+
+    if (newRows === currentConfig.rows && newCols === currentConfig.columns)
+      return;
+
+    this.config.update((c) => ({ ...c, rows: newRows, columns: newCols }));
+    this.sendCommand('RESIZE', { rows: newRows, columns: newCols });
   }
 }

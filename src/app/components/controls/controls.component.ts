@@ -54,6 +54,17 @@ export class ControlsComponent {
     this.engine.config.update((c) => ({ ...c, cellSize: val }));
   }
 
+  updateDensity(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let val = parseFloat(input.value);
+    
+    // Conversion pourcentage -> 0.0-1.0
+    if (isNaN(val) || val < 0) val = 0;
+    if (val > 100) val = 100;
+    
+    this.engine.config.update((c) => ({ ...c, initialDensity: val / 100 }));
+  }
+
   applyPreset(event: Event) {
     const name = (event.target as HTMLSelectElement).value;
     if (name) this.engine.applyPreset(name);
